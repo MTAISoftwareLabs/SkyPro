@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CodeCanyon description fixes — Nova IPTV Player</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 920px; margin: 24px auto; padding: 0 16px; line-height: 1.45; }
+    code, pre { background: #f4f4f5; }
+    pre { padding: 14px; overflow: auto; border-radius: 8px; }
+    h1,h2 { margin-top: 1.6em; }
+    .note { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 14px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>CodeCanyon description fixes</h1>
+  <div class="note">
+    <p><strong>How to use:</strong> On CodeCanyon → Edit item → Description → switch to <strong>HTML / Source</strong> mode.
+    Replace the broken Version 1.1.2 / 1.1.1 changelog lists and the <code>home_tv.png</code> image block with the snippets below.
+    Then re-zip the product package (empty folders already removed) and resubmit.</p>
+  </div>
+
+  <h2>1) Fixed changelog lists (Version 1.1.2 + 1.1.1)</h2>
+  <p>Each <code>&lt;ul&gt;</code> must be closed with <code>&lt;/ul&gt;</code> before the next heading.</p>
+  <pre>&lt;h3&gt;Version 1.1.2&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;[ADDED] Download films page.&lt;/li&gt;
+  &lt;li&gt;[ADDED] Performance mode.&lt;/li&gt;
+  &lt;li&gt;[UPDATE] Update some dependencies.&lt;/li&gt;
+  &lt;li&gt;[IMPROVED] Redesign Login methods login.&lt;/li&gt;
+  &lt;li&gt;[IMPROVED] Redesign login admin panel page.&lt;/li&gt;
+  &lt;li&gt;[IMPROVED] Cleaning the code from bugs.&lt;/li&gt;
+  &lt;li&gt;[FIX] Players Zapping Vlc/Exo player Android devices.&lt;/li&gt;
+  &lt;li&gt;[FIX] Image loading slowly.&lt;/li&gt;
+  &lt;li&gt;[FIX] Errors.&lt;/li&gt;
+  &lt;li&gt;[FIX] Remove button enable/disable show m3u url and sign in sections.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3&gt;Version 1.1.1&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;[FIX] Re-activation stays Active after panel / Manage Playlist renew.&lt;/li&gt;
+  &lt;li&gt;[FIX] Role permission matrix save for Admin, Moderator, and Viewer.&lt;/li&gt;
+  &lt;li&gt;[IMPROVED] Navy home theme and sharper navbar icons.&lt;/li&gt;
+  &lt;li&gt;[IMPROVED] Navy app bar on Movies / Series / Favorites / Catch Up.&lt;/li&gt;
+  &lt;li&gt;[IMPROVED] Live TV sticky category and channel headers.&lt;/li&gt;
+  &lt;li&gt;[IMPROVED] Playlist URLs hidden until PIN is revealed.&lt;/li&gt;
+  &lt;li&gt;[IMPROVED] Guest staff accounts mask the App API Secret.&lt;/li&gt;
+  &lt;li&gt;[UPDATE] Schema and docs for v1.1.1.&lt;/li&gt;
+&lt;/ul&gt;</pre>
+
+  <h2>2) Fixed home_tv.png float block</h2>
+  <p>Use a dedicated wrapper with <code>overflow:hidden</code> (or an explicit <code>clear:both</code>) so the floated image does not nest into the next margin div.</p>
+  <pre>&lt;div style="margin:20px 0; overflow:hidden;"&gt;
+  &lt;div style="float:right; margin:0 0 12px 16px; max-width:48%;"&gt;
+    &lt;img src="home_tv.png" alt="Nova IPTV Player — Smart TV home" style="display:block; width:100%; height:auto; border-radius:8px;" /&gt;
+  &lt;/div&gt;
+  &lt;!-- put caption / text for this screenshot here if needed --&gt;
+  &lt;div style="clear:both;"&gt;&lt;/div&gt;
+&lt;/div&gt;</pre>
+
+  <h2>3) Empty folders</h2>
+  <p>These empty directories were removed from the Flutter app sources / package:</p>
+  <ul>
+    <li>android/.kotlin (+ sessions)</li>
+    <li>android/app/src/main/kotlin/nova/... (old empty package path)</li>
+    <li>lib/features/... (empty placeholders)</li>
+    <li>lib/logic/cubits/live_category_memory</li>
+    <li>packages/better_player_plus/lib/src/clearkey</li>
+    <li>packages/better_player_plus/lib/src/list</li>
+  </ul>
+  <p>Re-export a fresh zip from the cleaned package before resubmitting.</p>
+</body>
+</html>

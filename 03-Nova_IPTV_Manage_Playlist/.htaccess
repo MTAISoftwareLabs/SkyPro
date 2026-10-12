@@ -1,0 +1,16 @@
+# Deny direct access to config and includes
+<IfModule mod_authz_core.c>
+  <DirectoryMatch "(?i)/(config|includes)/">
+    Require all denied
+  </DirectoryMatch>
+</IfModule>
+
+# Fallback for older Apache
+<IfModule !mod_authz_core.c>
+  <IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(config|includes)/ - [F,L]
+  </IfModule>
+</IfModule>
+
+Options -Indexes

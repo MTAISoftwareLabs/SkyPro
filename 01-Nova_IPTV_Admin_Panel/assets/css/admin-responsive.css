@@ -1,0 +1,514 @@
+/**
+ * Admin panel — responsive layout for phone / tablet / desktop
+ * Loaded from includes/header.php (and login.php).
+ */
+
+:root {
+  --admin-pad-x: clamp(12px, 3vw, 24px);
+  --admin-radius: 16px;
+}
+
+/* ---------- Base ---------- */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+.admin-main .container,
+.admin-main.container,
+body > .container.admin-main {
+  max-width: 100%;
+}
+
+/* ---------- Shell / spacing ---------- */
+@media (max-width: 991.98px) {
+  .admin-main {
+    padding-top: 16px !important;
+    padding-bottom: 20px !important;
+  }
+
+  .container,
+  .container-fluid {
+    padding-left: var(--admin-pad-x) !important;
+    padding-right: var(--admin-pad-x) !important;
+  }
+
+  .page-header {
+    margin-bottom: 1.1rem;
+  }
+
+  .page-header-title {
+    font-size: 1.15rem;
+    flex-wrap: wrap;
+  }
+
+  .page-header-subtitle {
+    font-size: 0.88rem;
+  }
+
+  .admin-shell-card,
+  .log-card,
+  .stats-card {
+    border-radius: 14px !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .admin-main {
+    padding-top: 12px !important;
+    padding-bottom: 16px !important;
+    margin-top: 0.75rem !important;
+  }
+
+  .admin-footer {
+    padding: 12px 10px;
+    font-size: 0.8rem;
+    margin-top: 20px;
+  }
+
+  .stats-card {
+    padding: 16px 14px !important;
+  }
+
+  .stats-number {
+    font-size: 1.45rem !important;
+  }
+}
+
+/* ---------- Navbar (phone menu) ---------- */
+@media (max-width: 991.98px) {
+  .admin-navbar .navbar-brand-text {
+    font-size: 0.95rem;
+    max-width: min(52vw, 220px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-navbar .navbar-collapse {
+    margin-top: 0.35rem;
+    padding: 0.65rem 0.35rem 0.85rem;
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.92);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  }
+
+  .admin-navbar .navbar-nav-main .nav-link {
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+    margin-bottom: 4px;
+  }
+
+  .admin-navbar .navbar-nav-tools {
+    gap: 0.55rem !important;
+  }
+
+  .admin-navbar .navbar-nav-tools .nav-link:not(.notif-link) {
+    border-radius: 12px !important;
+    padding: 9px 12px !important;
+  }
+
+  .lang-toggle {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .lang-toggle-buttons {
+    flex: 1 1 auto;
+    justify-content: stretch;
+  }
+
+  .lang-toggle-btn {
+    flex: 1 1 0;
+  }
+}
+
+/* ---------- Tables: always scrollable on small screens ---------- */
+.table-responsive,
+.pc-table-wrap,
+.admin-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border-radius: 12px;
+}
+
+.table-responsive::-webkit-scrollbar,
+.pc-table-wrap::-webkit-scrollbar,
+.admin-table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb,
+.pc-table-wrap::-webkit-scrollbar-thumb,
+.admin-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+
+@media (max-width: 991.98px) {
+  /* Override pages that hide horizontal scroll */
+  .table-responsive {
+    overflow-x: auto !important;
+  }
+
+  #devicesTable,
+  #pcdDevicesTable,
+  .pc-table-wrap table,
+  .admin-main table.table {
+    min-width: 720px;
+  }
+
+  #devicesTable {
+    table-layout: auto !important;
+  }
+
+  .pc-table-wrap table {
+    min-width: 780px;
+  }
+
+  .staff-col-actions {
+    min-width: 160px !important;
+  }
+
+  /* Soft hint that the table can be swiped */
+  .admin-table-scroll::after,
+  .table-responsive.admin-table-hint::after,
+  .pc-table-wrap::after {
+    content: none;
+  }
+
+  .admin-scroll-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #94a3b8;
+    font-size: 0.78rem;
+    margin: 0 0 0.55rem;
+  }
+
+  .admin-scroll-hint i {
+    color: #38bdf8;
+  }
+}
+
+@media (min-width: 992px) {
+  .admin-scroll-hint {
+    display: none !important;
+  }
+}
+
+/* ---------- Filter bars / toolbars ---------- */
+@media (max-width: 767.98px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .filter-pills {
+    width: 100%;
+  }
+
+  .filter-btn,
+  .filter-btn-group {
+    white-space: normal !important;
+  }
+
+  .filter-btn-group {
+    margin-inline-start: 0 !important;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .device-id-search {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: 100%;
+  }
+
+  .d-flex.justify-content-between.align-items-center {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+/* ---------- Feature toggles / switch rows ---------- */
+@media (max-width: 767.98px) {
+  .feature-toggle,
+  .vpn-switch-row {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+    padding: 14px !important;
+    align-items: flex-start !important;
+  }
+
+  .feature-toggle-left,
+  .feature-left {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .feature-toggle .toggle-wrapper,
+  .feature-toggle > .toggle-wrapper,
+  .feature-toggle > div:last-child:not(.feature-toggle-left):not(.feature-left) {
+    margin-inline-start: auto;
+  }
+
+  .feature-toggle .toggle-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+  }
+
+  .feature-title {
+    font-size: 0.95rem !important;
+  }
+
+  .feature-desc {
+    font-size: 0.8rem !important;
+    line-height: 1.45;
+  }
+
+  .admin-shell-card,
+  .settings-card,
+  .card {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
+/* ---------- Forms & buttons ---------- */
+@media (max-width: 575.98px) {
+  .btn:not(.btn-sm):not(.notif-link):not(.lang-toggle-btn) {
+    min-height: 42px;
+  }
+
+  .btn-group {
+    flex-wrap: wrap;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 16px !important; /* prevent iOS zoom */
+  }
+
+  .modal-dialog {
+    margin: 0.65rem;
+  }
+
+  .btn-action,
+  .btn-delete,
+  .btn-edit {
+    white-space: normal;
+  }
+}
+
+/* ---------- Cards / grids ---------- */
+@media (max-width: 767.98px) {
+  .row.g-3 > [class*="col-"],
+  .row.g-4 > [class*="col-"] {
+    margin-bottom: 0;
+  }
+
+  .quick-connected-btn {
+    font-size: 0.8rem !important;
+    padding: 9px 12px !important;
+  }
+}
+
+/* ---------- Login page helpers (also linked from login.php) ---------- */
+@media (max-width: 575.98px) {
+  .login-card {
+    margin: 12px;
+    padding: 22px 16px 18px !important;
+    max-width: calc(100% - 24px) !important;
+    border-radius: 16px !important;
+  }
+
+  .lang-switcher {
+    top: 12px !important;
+    inset-inline-end: 12px !important;
+    right: auto !important;
+    left: auto !important;
+  }
+
+  [dir="rtl"] .lang-switcher {
+    inset-inline-end: 12px !important;
+  }
+
+  .demo-download-btn {
+    flex-wrap: wrap;
+    gap: 0.4rem !important;
+    padding: 10px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .demo-download-btn .demo-download-label {
+    white-space: normal !important;
+    text-align: center;
+    line-height: 1.35;
+  }
+}
+
+/* ---------- Utility ---------- */
+.admin-touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 991.98px) {
+  /* Avoid hover transforms feeling jumpy on touch */
+  .stats-card:hover,
+  .feature-toggle:hover,
+  .quick-connected-btn:hover {
+    transform: none;
+  }
+}
+
+/* ---------- Table pagination (dark + red active) ---------- */
+.admin-pager {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.15rem;
+  margin-bottom: 0.35rem;
+}
+
+.admin-pager[hidden] {
+  display: none !important;
+}
+
+.admin-pager__inner {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.admin-pager__btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 42px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(71, 85, 105, 0.65);
+  background: #1e293b;
+  color: #f8fafc !important;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+  text-decoration: none !important;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+
+.admin-pager__btn:hover:not(.is-disabled):not(.is-active):not(.admin-pager__ellipsis) {
+  background: #334155;
+  border-color: rgba(148, 163, 184, 0.55);
+  transform: translateY(-1px);
+}
+
+.admin-pager__btn.is-active {
+  background: #e11d48;
+  border-color: #be123c;
+  box-shadow: 0 8px 18px rgba(225, 29, 72, 0.28);
+  cursor: default;
+}
+
+.admin-pager__btn.is-disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+.admin-pager__ellipsis {
+  letter-spacing: 0.12em;
+  cursor: default;
+}
+
+@media (max-width: 575.98px) {
+  .admin-pager__btn {
+    min-width: 38px;
+    height: 38px;
+    font-size: 0.88rem;
+  }
+  .admin-pager__inner {
+    gap: 6px;
+  }
+}
+
+/* خانة + زر عين/نسخ: صندوق واحد في العربية والإنجليزية */
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group),
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group) {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group):focus-within,
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group):focus-within {
+  border-color: rgba(56, 189, 248, 0.9);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.55);
+}
+
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group) > .form-control,
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group) > .form-select,
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group) > .btn,
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group) > .input-group-text,
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group) > .form-control,
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group) > .form-select,
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group) > .btn,
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group) > .input-group-text {
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group) > .btn,
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group) > .input-group-text,
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group) > .btn,
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group) > .input-group-text {
+  border-inline-start: 1px solid rgba(148, 163, 184, 0.45) !important;
+  background: rgba(15, 23, 42, 0.98) !important;
+  color: #e5e7eb !important;
+  min-width: 48px;
+  padding-inline: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-group:has(> .btn):not(.pc-code-group):not(.pc-number-group) > .form-control,
+.input-group:has(> .input-group-text):not(.pc-code-group):not(.pc-number-group) > .form-control {
+  background: transparent !important;
+}
