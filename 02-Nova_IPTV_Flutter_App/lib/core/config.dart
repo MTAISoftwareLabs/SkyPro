@@ -1,5 +1,5 @@
 // Hardcoded & Obfuscated SkyPro URLs (protected from strings dumping)
-const List<int> _kObfPanel = <int>[50, 46, 46, 42, 96, 117, 117, 41, 49, 35, 42, 40, 53, 119, 59, 42, 42, 116, 57, 53, 55];
+const List<int> _kObfPanel = <int>[50, 46, 46, 42, 41, 96, 117, 117, 41, 49, 35, 42, 40, 53, 119, 59, 42, 42, 116, 57, 53, 55];
 const List<int> _kObfStream = <int>[50, 46, 46, 42, 96, 117, 117, 41, 49, 35, 42, 40, 53, 119, 59, 42, 42, 116, 57, 53, 55, 96, 104, 111, 110, 108, 105];
 
 String _deobf(List<int> bytes, int k) => String.fromCharCodes(bytes.map((b) => b ^ k));
@@ -12,7 +12,7 @@ String normalizedActivationPanelBaseUrl() {
   var u = kActivationPanelBaseUrl.trim();
   if (u.isEmpty) return u;
   if (!u.contains('://')) {
-    u = 'http://$u';
+    u = 'https://$u';
   }
   while (u.endsWith('/')) {
     u = u.substring(0, u.length - 1);
