@@ -45,8 +45,8 @@ $translations = [
         'lang.name_ar' => 'العربية',
         'lang.name_en' => 'English',
 
-        'app.title' => 'لوحة التحكم',
-        'app.subtitle' => 'إدارة الأجهزة المفعّلة، حالة الاتصال، وتوزيع الاشتراكات من لوحة واحدة أنيقة.',
+        'app.title' => 'SkyPro',
+        'app.subtitle' => 'نظام إدارة البث والاشتراكات.',
 
         'nav.home' => 'الرئيسية',
         'nav.add_device' => 'إضافة جهاز',
@@ -382,8 +382,8 @@ $translations = [
         'button.add_device' => 'إضافة الجهاز',
         'button.login' => 'تسجيل الدخول',
 
-        'login.title' => 'لوحة تحكم التفعيل',
-        'login.subtitle' => 'يرجى تسجيل الدخول للوصول إلى لوحة إدارة الأجهزة.',
+        'login.title' => 'تسجيل الدخول',
+        'login.subtitle' => 'يرجى تسجيل الدخول للوصول إلى لوحة التحكم.',
         'login.username' => 'اسم المستخدم',
         'login.password' => 'كلمة المرور',
         'login.remember_me' => 'تذكرني',
@@ -878,8 +878,8 @@ $translations = [
         'lang.name_ar' => 'العربية',
         'lang.name_en' => 'English',
 
-        'app.title' => 'Control Panel',
-        'app.subtitle' => 'Manage activated devices, live connection status and subscriptions from a single modern dashboard.',
+        'app.title' => 'SkyPro',
+        'app.subtitle' => 'SkyPro Streaming Management System.',
 
         'nav.home' => 'Dashboard',
         'nav.add_device' => 'Add Device',
@@ -1215,8 +1215,8 @@ $translations = [
         'button.add_device' => 'Add device',
         'button.login' => 'Log in',
 
-        'login.title' => 'Control Panel',
-        'login.subtitle' => 'Please log in to access the device management dashboard.',
+        'login.title' => 'Log in',
+        'login.subtitle' => 'Please log in to access your SkyPro dashboard.',
         'login.username' => 'Username',
         'login.password' => 'Password',
         'login.remember_me' => 'Remember me',

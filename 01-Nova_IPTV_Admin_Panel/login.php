@@ -51,22 +51,7 @@ $inactiveNotice = isset($_GET['inactive']) && $_GET['inactive'] === '1';
 
 
 $demoBoxHtml = static function () use ($demoUsername, $demoPassword): string {
-    ob_start();
-    ?>
-    <div class="demo-card">
-      <p class="demo-card__hint"><?php echo htmlspecialchars(t('login.demo_try_hint'), ENT_QUOTES, 'UTF-8'); ?></p>
-      <div class="demo-card__row">
-        <span><?php echo htmlspecialchars(t('login.username'), ENT_QUOTES, 'UTF-8'); ?></span>
-        <strong><?php echo htmlspecialchars($demoUsername, ENT_QUOTES, 'UTF-8'); ?></strong>
-      </div>
-      <div class="demo-card__row">
-        <span><?php echo htmlspecialchars(t('login.password'), ENT_QUOTES, 'UTF-8'); ?></span>
-        <strong><?php echo htmlspecialchars($demoPassword, ENT_QUOTES, 'UTF-8'); ?></strong>
-      </div>
-      <p class="demo-card__note"><?php echo htmlspecialchars(t('login.demo_note'), ENT_QUOTES, 'UTF-8'); ?></p>
-    </div>
-    <?php
-    return (string) ob_get_clean();
+    return '';
 };
 ?>
 <!DOCTYPE html>
@@ -74,7 +59,7 @@ $demoBoxHtml = static function () use ($demoUsername, $demoPassword): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><?php echo t('login.title'); ?></title>
+<title>SkyPro</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
@@ -520,7 +505,6 @@ body {
       <span class="chip"><i class="fas fa-mobile-screen"></i> Mobile</span>
       <span class="chip"><i class="fas fa-lock"></i> Secure</span>
 </div>
-    <?php echo $demoBoxHtml(); ?>
   </section>
 
   <section class="card auth">
@@ -561,27 +545,6 @@ body {
       <button class="btn-login" type="submit"><?php echo t('button.login'); ?></button>
 </form>
 
-    <?php echo $demoBoxHtml(); ?>
-
-    <div class="contact">
-      <p class="contact__label"><?php echo t('contact.title'); ?></p>
-      <div class="contact__grid">
-        <a class="contact__item contact__item--mail" href="mailto:mehdilamnaouar18@gmail.com"
-           title="<?php echo htmlspecialchars(t('contact.email_hint'), ENT_QUOTES, 'UTF-8'); ?>">
-          <i class="fas fa-envelope"></i>
-          <span><?php echo t('contact.email_action'); ?></span>
-        </a>
-        <a class="contact__item contact__item--tg" href="https://t.me/Me1hdi1" target="_blank" rel="noopener noreferrer">
-          <i class="fab fa-telegram"></i>
-          <span>@Me1hdi1</span>
-        </a>
-        <a class="contact__item contact__item--dc" href="https://discord.com/users/424037902121435139" target="_blank" rel="noopener noreferrer"
-           title="<?php echo htmlspecialchars(t('contact.discord_hint'), ENT_QUOTES, 'UTF-8'); ?>">
-          <i class="fab fa-discord"></i>
-          <span>@me1hdi</span>
-        </a>
-</div>
-</div>
   </section>
 </main>
 

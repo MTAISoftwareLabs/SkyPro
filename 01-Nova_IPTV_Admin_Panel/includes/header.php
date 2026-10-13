@@ -486,13 +486,7 @@ body {
                         <i class="fas fa-user-shield"></i><span><?php echo t('nav.admin_users'); ?></span>
                     </a>
                 </li>
-                <?php if (file_exists(__DIR__ . '/../manage_activations.php')): ?>
-                <li class="nav-item">
-                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'manage' ? 'active' : ''; ?>" href="manage_activations.php">
-                        <i class="fas fa-list"></i><span><?php echo t('nav.manage'); ?></span>
-                    </a>
-                </li>
-                <?php endif; ?>
+
                 <li class="nav-item">
                     <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'playlist_codes' ? 'active' : ''; ?>" href="playlist_codes.php">
                         <i class="fas fa-qrcode"></i><span><?php echo t('nav.playlist_codes'); ?></span>
