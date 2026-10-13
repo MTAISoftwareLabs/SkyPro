@@ -1,11 +1,11 @@
 {
-    "name": "Nova IPTV Player",
-    "short_name": "Nova IPTV",
+    "name": "SkyPro",
+    "short_name": "SkyPro",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Nova IPTV Player — live TV, VOD, and series.",
+    "background_color": "#000000",
+    "theme_color": "#007BFF",
+    "description": "SkyPro — live TV, movies, and series.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

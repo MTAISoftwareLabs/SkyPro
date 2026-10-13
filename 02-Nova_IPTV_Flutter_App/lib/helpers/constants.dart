@@ -1,6 +1,6 @@
 part of 'helpers.dart';
 
-const String kAppName = "Nova IPTV Player";
+const String kAppName = "SkyPro";
 
 /// اسم العرض الثابت للتطبيق — لا يُستبدل باسم اللوحة حتى لا يظهر اسم قديم بعد النسخ.
 String get appName => kAppName;
@@ -39,7 +39,8 @@ String get appVersionText {
 const String kIconLiveTv = "assets/images/live tv.png";
 const String kIconSeries = "assets/images/series.png";
 const String kIconMovies = "assets/images/film-reel.png";
-const String kIconSplash = "assets/images/logo app.png";
+const String kSkyProLogo = "assets/images/skypro_logo.png";
+const String kIconSplash = kSkyProLogo;
 
 /// أيقونات شريط Home على التلفزيون — نفس أصول Smart TV.
 const String kSmartTvNavHome = 'assets/images/smart_tv_nav/nav-home.png';
@@ -258,7 +259,8 @@ void syncXtreamLiveFormatFromLogin(List<String>? _) {
   );
 }
 
-const String kStorageXtreamLiveFormatUserLocked = 'xtream_live_format_user_locked';
+const String kStorageXtreamLiveFormatUserLocked =
+    'xtream_live_format_user_locked';
 
 void setPreferredXtreamLiveStreamFormat(XtreamLiveStreamFormat format) {
   GetStorage().write(
@@ -504,7 +506,6 @@ bool get preferExoSoftwareDecoder {
   // auto: صناديق TV + lite غالباً HW decode كيعلّق على بعض القنوات.
   return AppPerf.instance.isTelevisionLike || AppPerf.instance.isLite;
 }
-
 
 const String _kStorageVideoPlayerVlcPrimaryMigrated =
     'video_player_vlc_primary_v1';

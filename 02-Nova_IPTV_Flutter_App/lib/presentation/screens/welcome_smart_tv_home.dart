@@ -21,8 +21,9 @@ final ValueNotifier<SmartTvShellTab?> kPendingTvShellTab =
 final ValueNotifier<String> kSmartTvTopSearchQuery = ValueNotifier<String>('');
 
 /// كlavier بحث الشريط مفتوح — يمنع Live من سرقة التركيز للفئات.
-final ValueNotifier<bool> kSmartTvTopSearchKeyboardOpen =
-    ValueNotifier<bool>(false);
+final ValueNotifier<bool> kSmartTvTopSearchKeyboardOpen = ValueNotifier<bool>(
+  false,
+);
 
 void kSmartTvClearTopSearch() {
   if (kSmartTvTopSearchQuery.value.isEmpty) return;
@@ -56,15 +57,25 @@ class _SmartTvHomeTopBar extends StatelessWidget {
     this.selected = SmartTvShellTab.home,
     this.onSelectTab,
     this.onArrowDownToContent,
+    this.onArrowRightToContent,
     this.onSearchClosed,
+    this.sideRail = false,
+    this.utilitiesOnly = false,
   });
 
   final SmartTvShellTab selected;
   final ValueChanged<SmartTvShellTab>? onSelectTab;
+
   /// ↓ من الشريط → محتوى الصفحة (فئة أولى / بوستر).
   final VoidCallback? onArrowDownToContent;
+
+  /// → من شريط الجانب → محتوى الصفحة.
+  final VoidCallback? onArrowRightToContent;
+
   /// بعد إغلاق كlavier البحث العلوي → أول نتيجة / أول فئة.
   final VoidCallback? onSearchClosed;
+  final bool sideRail;
+  final bool utilitiesOnly;
 
   static void _openLive() {
     ParentalControlService.instance.navigateToProtectedAction(
@@ -112,12 +123,14 @@ class _SmartTvHomeTopBar extends StatelessWidget {
     if (phone) {
       return _buildPhoneBar(context);
     }
+    if (sideRail) return _buildTvSideRail(context);
+    if (utilitiesOnly) return _buildTvUtilitiesBar(context);
     return _buildTvBar(context);
   }
 
   /// شريط موبايل: سطر واحد فقط — لوغو + تبويبات + أدوات بنفس الارتفاع.
   Widget _buildPhoneBar(BuildContext context) {
-    const barBg = Color(0xFF18233A);
+    const barBg = kSkyProBlack;
     const iconBox = 32.0;
     final side = (MediaQuery.sizeOf(context).width * 0.03).clamp(10.0, 14.0);
 
@@ -137,10 +150,8 @@ class _SmartTvHomeTopBar extends StatelessWidget {
                   height: iconBox,
                   fit: BoxFit.cover,
                   filterQuality: FilterQuality.medium,
-                  errorBuilder: (_, _, _) => const SizedBox(
-                    width: iconBox,
-                    height: iconBox,
-                  ),
+                  errorBuilder: (_, _, _) =>
+                      const SizedBox(width: iconBox, height: iconBox),
                 ),
               ),
               const SizedBox(width: 6),
@@ -305,7 +316,7 @@ class _SmartTvHomeTopBar extends StatelessWidget {
     );
 
     return Material(
-      color: const Color(0xFF18233A),
+      color: kSkyProBlack,
       child: Padding(
         padding: EdgeInsets.fromLTRB(side, top, side, 10),
         child: Row(
@@ -318,10 +329,8 @@ class _SmartTvHomeTopBar extends StatelessWidget {
                 height: logoSize,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
-                errorBuilder: (_, _, _) => const SizedBox(
-                  width: logoSize,
-                  height: logoSize,
-                ),
+                errorBuilder: (_, _, _) =>
+                    const SizedBox(width: logoSize, height: logoSize),
               ),
             ),
             const SizedBox(width: 12),
@@ -346,9 +355,7 @@ class _SmartTvHomeTopBar extends StatelessWidget {
                 const SizedBox(width: 8),
                 const _SmartTvWifiIcon(),
                 const SizedBox(width: 6),
-                _SmartTvProfileBtn(
-                  onArrowDownToContent: onArrowDownToContent,
-                ),
+                _SmartTvProfileBtn(onArrowDownToContent: onArrowDownToContent),
                 const SizedBox(width: 6),
                 _SmartTvNotificationsBtn(
                   onArrowDownToContent: onArrowDownToContent,
@@ -365,6 +372,260 @@ class _SmartTvHomeTopBar extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTvSideRail(BuildContext context) {
+    const railWidth = 112.0;
+    final tabs = <({SmartTvShellTab tab, String label, String icon})>[
+      (
+        tab: SmartTvShellTab.home,
+        label: 'home_nav_home'.tr,
+        icon: kSmartTvNavHome,
+      ),
+      (
+        tab: SmartTvShellTab.live,
+        label: 'home_nav_channels'.tr,
+        icon: kSmartTvNavLive,
+      ),
+      (
+        tab: SmartTvShellTab.movies,
+        label: 'movies'.tr,
+        icon: kSmartTvNavMovies,
+      ),
+      (
+        tab: SmartTvShellTab.series,
+        label: 'series'.tr,
+        icon: kSmartTvNavSeries,
+      ),
+      (
+        tab: SmartTvShellTab.favourites,
+        label: 'favourites'.tr,
+        icon: kSmartTvNavFav,
+      ),
+    ];
+
+    return Material(
+      color: kSkyProBlack,
+      child: Container(
+        width: railWidth,
+        decoration: const BoxDecoration(
+          border: Border(right: BorderSide(color: Color(0x55007BFF), width: 1)),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 16, 10, 12),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        kSkyProLogo,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Icon(
+                            Icons.live_tv,
+                            color: kSkyProBlue,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'SKYPRO',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: kSkyProSilver,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, thickness: 1, color: Color(0x33007BFF)),
+              const SizedBox(height: 12),
+              Expanded(
+                child: FocusTraversalGroup(
+                  policy: OrderedTraversalPolicy(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    itemCount: tabs.length,
+                    itemBuilder: (context, index) {
+                      final item = tabs[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _SkyProTvRailItem(
+                          label: item.label,
+                          iconAsset: item.icon,
+                          selected: selected == item.tab,
+                          order: index + 1,
+                          onTap: () => _select(item.tab),
+                          onArrowRight: onArrowRightToContent,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTvUtilitiesBar(BuildContext context) {
+    final side = smartTvHomeSideInset(context);
+    final top = smartTvHomeTopInset(context);
+    return Material(
+      color: kSkyProBlack,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(0, top, side, 10),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            _SmartTvSearchPill(
+              selected: selected,
+              onArrowDownToContent: onArrowDownToContent,
+              onSearchClosed: onSearchClosed,
+            ),
+            const SizedBox(width: 8),
+            const _SmartTvLiveClock(),
+            const SizedBox(width: 8),
+            const _SmartTvWifiIcon(),
+            const SizedBox(width: 6),
+            _SmartTvProfileBtn(onArrowDownToContent: onArrowDownToContent),
+            const SizedBox(width: 6),
+            _SmartTvNotificationsBtn(
+              onArrowDownToContent: onArrowDownToContent,
+            ),
+            const SizedBox(width: 6),
+            _SmartTvCircleIconBtn(
+              asset: kSmartTvNavSettings,
+              tooltip: 'settings'.tr,
+              onTap: _openSettings,
+              isLastInRow: true,
+              focusDebugLabel: _stvTopLabel('settings'),
+              onArrowDownToContent: onArrowDownToContent,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SkyProTvRailItem extends StatefulWidget {
+  const _SkyProTvRailItem({
+    required this.label,
+    required this.iconAsset,
+    required this.selected,
+    required this.order,
+    required this.onTap,
+    this.onArrowRight,
+  });
+
+  final String label;
+  final String iconAsset;
+  final bool selected;
+  final int order;
+  final VoidCallback onTap;
+  final VoidCallback? onArrowRight;
+
+  @override
+  State<_SkyProTvRailItem> createState() => _SkyProTvRailItemState();
+}
+
+class _SkyProTvRailItemState extends State<_SkyProTvRailItem> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusTraversalOrder(
+      order: NumericFocusOrder(widget.order.toDouble()),
+      child: Focus(
+        autofocus: widget.selected,
+        onFocusChange: (focused) {
+          if (_focused != focused) setState(() => _focused = focused);
+        },
+        onKeyEvent: (_, event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            widget.onArrowRight?.call();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            canRequestFocus: false,
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: double.infinity,
+              height: 66,
+              decoration: BoxDecoration(
+                color: widget.selected
+                    ? kSkyProBlue.withValues(alpha: 0.2)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _focused
+                      ? kSkyProSilver
+                      : widget.selected
+                      ? kSkyProBlue
+                      : Colors.transparent,
+                  width: _focused ? 2 : 1,
+                ),
+              ),
+              child: Semantics(
+                button: true,
+                selected: widget.selected,
+                label: widget.label,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      widget.iconAsset,
+                      width: 22,
+                      height: 22,
+                      color: kSkyProSilver,
+                      colorBlendMode: BlendMode.srcIn,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.live_tv,
+                        size: 22,
+                        color: kSkyProSilver,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: kSkyProSilver,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -528,6 +789,7 @@ class _SmartTvHomeTab extends StatefulWidget {
   final bool isFirstInRow;
   final String? focusDebugLabel;
   final VoidCallback? onArrowDownToContent;
+
   /// تبويبات الموبايل: حجم موحّد أنيق.
   final bool mobile;
 
@@ -537,8 +799,9 @@ class _SmartTvHomeTab extends StatefulWidget {
 
 class _SmartTvHomeTabState extends State<_SmartTvHomeTab> {
   bool _focused = false;
-  late final FocusNode _focusNode =
-      FocusNode(debugLabel: widget.focusDebugLabel);
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: widget.focusDebugLabel,
+  );
 
   @override
   void initState() {
@@ -611,11 +874,8 @@ class _SmartTvHomeTabState extends State<_SmartTvHomeTab> {
                 width: iconSize,
                 height: iconSize,
                 filterQuality: FilterQuality.medium,
-                errorBuilder: (_, _, _) => Icon(
-                  Icons.circle,
-                  size: iconSize * 0.8,
-                  color: fg,
-                ),
+                errorBuilder: (_, _, _) =>
+                    Icon(Icons.circle, size: iconSize * 0.8, color: fg),
               ),
               SizedBox(width: gap),
               Text(
@@ -655,8 +915,9 @@ class _SmartTvSearchPill extends StatefulWidget {
 class _SmartTvSearchPillState extends State<_SmartTvSearchPill> {
   bool _focused = false;
   bool _kbOpen = false;
-  late final FocusNode _focusNode =
-      FocusNode(debugLabel: _stvTopLabel('search'));
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: _stvTopLabel('search'),
+  );
   final FocusNode _kbSeedFocus = FocusNode(debugLabel: 'stv_top_search_kb');
   final FocusNode _textFocus = FocusNode(debugLabel: 'stv_top_search_text');
   final TextEditingController _controller = TextEditingController();
@@ -969,8 +1230,9 @@ class _SmartTvNotificationsBtn extends StatefulWidget {
 
 class _SmartTvNotificationsBtnState extends State<_SmartTvNotificationsBtn> {
   bool _focused = false;
-  late final FocusNode _focusNode =
-      FocusNode(debugLabel: _stvTopLabel('notifications'));
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: _stvTopLabel('notifications'),
+  );
 
   @override
   void initState() {
@@ -1114,8 +1376,9 @@ class _SmartTvCircleIconBtn extends StatefulWidget {
 
 class _SmartTvCircleIconBtnState extends State<_SmartTvCircleIconBtn> {
   bool _focused = false;
-  late final FocusNode _focusNode =
-      FocusNode(debugLabel: widget.focusDebugLabel);
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: widget.focusDebugLabel,
+  );
 
   @override
   void initState() {
@@ -1212,8 +1475,9 @@ class _SmartTvProfileBtn extends StatefulWidget {
 class _SmartTvProfileBtnState extends State<_SmartTvProfileBtn>
     with WidgetsBindingObserver {
   bool _focused = false;
-  late final FocusNode _focusNode =
-      FocusNode(debugLabel: _stvTopLabel('profile'));
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: _stvTopLabel('profile'),
+  );
 
   @override
   void initState() {
@@ -1250,10 +1514,8 @@ class _SmartTvProfileBtnState extends State<_SmartTvProfileBtn>
         return Image.file(
           File(file),
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Image.asset(
-            kSmartTvNavProfile,
-            fit: BoxFit.cover,
-          ),
+          errorBuilder: (_, _, _) =>
+              Image.asset(kSmartTvNavProfile, fit: BoxFit.cover),
         );
       }
       final asset = account.avatarAsset?.trim() ?? '';
@@ -1261,10 +1523,8 @@ class _SmartTvProfileBtnState extends State<_SmartTvProfileBtn>
         return Image.asset(
           ProfileAvatars.assetPath(asset),
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Image.asset(
-            kSmartTvNavProfile,
-            fit: BoxFit.cover,
-          ),
+          errorBuilder: (_, _, _) =>
+              Image.asset(kSmartTvNavProfile, fit: BoxFit.cover),
         );
       }
     }
@@ -1273,11 +1533,8 @@ class _SmartTvProfileBtnState extends State<_SmartTvProfileBtn>
       width: 20,
       height: 20,
       filterQuality: FilterQuality.medium,
-      errorBuilder: (_, _, _) => const Icon(
-        Icons.person,
-        color: Colors.white70,
-        size: 18,
-      ),
+      errorBuilder: (_, _, _) =>
+          const Icon(Icons.person, color: Colors.white70, size: 18),
     );
   }
 

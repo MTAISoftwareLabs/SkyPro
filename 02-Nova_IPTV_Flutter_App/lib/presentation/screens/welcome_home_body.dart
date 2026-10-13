@@ -15,10 +15,10 @@ Widget _welcomeBuildHomeContent(
       return ExcludeFocus(
     excluding: phoneNoFocus,
     child: Scaffold(
-      backgroundColor: tv ? const Color(0xFF18233A) : null,
+      backgroundColor: tv ? kSkyProBlack : null,
       body: DecoratedBox(
         decoration: tv
-            ? const BoxDecoration(color: Color(0xFF18233A))
+            ? const BoxDecoration(color: kSkyProBlack)
             : _homeScreenDecoration,
         child: SafeArea(
           top: false,

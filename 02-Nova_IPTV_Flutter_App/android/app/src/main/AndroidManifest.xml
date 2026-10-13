@@ -55,7 +55,7 @@
             android:resource="@drawable/ic_stat_onesignal_default" />
         <meta-data
             android:name="com.onesignal.NotificationAccentColor.DEFAULT"
-            android:value="FF38BDF8" />
+            android:value="FF007BFF" />
 
         <!-- AdMob App ID bootstrap (Google sample). Real ID comes from admin panel. -->
         <meta-data

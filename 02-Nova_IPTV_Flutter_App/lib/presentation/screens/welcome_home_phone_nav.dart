@@ -1,21 +1,7 @@
 part of 'screens.dart';
 
 BoxDecoration get _homeScreenDecoration {
-  final asset = getActiveHomeThemeAssets().mainBackground;
-  if (asset != null && asset.trim().isNotEmpty) {
-    return buildDecorationWithOptionalImage(
-      fallback: kDecorBackground,
-      backgroundAsset: asset,
-    );
-  }
-  return const BoxDecoration(
-    gradient: RadialGradient(
-      center: Alignment(0, -0.18),
-      radius: 1.18,
-      colors: [Color(0xFF1C2A48), Color(0xFF101A2E), Color(0xFF070B16)],
-      stops: [0.0, 0.46, 1.0],
-    ),
-  );
+  return const BoxDecoration(color: kSkyProBlack);
 }
 
 Widget _homePosterImage({

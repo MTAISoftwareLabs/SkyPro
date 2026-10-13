@@ -556,7 +556,7 @@ class _DeviceQrWithLogoHole extends StatelessWidget {
                 child: ColoredBox(
                   color: Colors.white,
                   child: Image.asset(
-                    'assets/images/logo app.png',
+                    kIconSplash,
                     width: hole,
                     height: hole,
                     fit: BoxFit.cover,

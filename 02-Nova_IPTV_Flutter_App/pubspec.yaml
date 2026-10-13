@@ -1,5 +1,5 @@
 name: mehdi_iptv
-description: Nova IPTV Player — a Flutter IPTV client for live TV, VOD, and series with Xtream Codes / M3U support, device activation panel, EPG, favorites, and multi-platform playback.
+description: SkyPro — a Flutter IPTV client for live TV, VOD, and series with Xtream Codes / M3U support, device activation, EPG, favorites, and multi-platform playback.
 
 publish_to: 'none'
 
@@ -76,15 +76,15 @@ flutter_launcher_icons:
   ios: true
   windows:
     generate: true
-    image_path: "assets/images/logo app.png"
+    image_path: "assets/images/skypro_logo.png"
     icon_size: 256
   macos:
     generate: true
-    image_path: "assets/images/logo app.png"
+    image_path: "assets/images/skypro_logo.png"
   web:
     generate: true
-    image_path: "assets/images/logo app.png"
-  image_path: "assets/images/logo app.png"
+    image_path: "assets/images/skypro_logo.png"
+  image_path: "assets/images/skypro_logo.png"
   remove_alpha_ios: true
 
 flutter:

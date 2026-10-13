@@ -1,56 +1,22 @@
 part of 'helpers.dart';
 
-// ألوان الثيم الأصلي (ذهبي + أسود)
-const Color _kOriginalPrimary = Color(0xFFF5C242);
-const Color _kOriginalPrimaryDark = Color(0xFFC79A27);
+// SkyPro brand palette.
+const Color kSkyProBlack = Color(0xFF000000);
+const Color kSkyProBlue = Color(0xFF007BFF);
+const Color kSkyProSilver = Color(0xFFE0E0E0);
 
-/// لون التمييز الأساسي حسب ثيم الشاشة الرئيسية (من السيرفر).
-Color get kColorPrimary {
-  switch (getActiveHomeThemeKey()) {
-    case 'netflix_red':
-      return const Color(0xFFE53935);
-    case 'ramadan_gold':
-      return const Color(0xFF81C784);
-    case 'sports_sky':
-      return const Color(0xFF4FC3F7);
-    case 'halloween_orange':
-      return const Color(0xFFFF9800);
-    case 'purple':
-      return const Color(0xFFB026FF);
-    default:
-      return _kOriginalPrimary;
-  }
-}
+/// SkyPro accent color.
+Color get kColorPrimary => kSkyProBlue;
 
-/// درجة أغمق للتدرجات والعناصر الثانوية.
-Color get kColorPrimaryDark {
-  switch (getActiveHomeThemeKey()) {
-    case 'netflix_red':
-      return const Color(0xFFC62828);
-    case 'ramadan_gold':
-      return const Color(0xFF43A047);
-    case 'sports_sky':
-      return const Color(0xFF0288D1);
-    case 'halloween_orange':
-      return const Color(0xFFF57C00);
-    case 'purple':
-      return const Color(0xFF7B2CBF);
-    default:
-      return _kOriginalPrimaryDark;
-  }
-}
+/// Keep the accent consistent with the supplied SkyPro logo.
+Color get kColorPrimaryDark => kSkyProBlue;
 
 /// لون التركيز (Focus) عند التنقل بالريموت — نفس لون الثيم النشط.
 Color get kColorFocus => kColorPrimary;
 
 /// لون العنصر المختار/النشط في متصفح البث (فئة / قناة قيد التشغيل).
-/// Sports Sky: أصفر (ذهبي) — متميز عن التركيز الأزرق. باقي الثيمات: أزرق فاتح.
-Color get kLiveBrowserSelectedColor {
-  if (getActiveHomeThemeKey() == 'sports_sky') {
-    return _kOriginalPrimary;
-  }
-  return const Color(0xFF5EB3FF);
-}
+/// Selected live-browser items use the SkyPro accent.
+Color get kLiveBrowserSelectedColor => kSkyProBlue;
 
 Color get kLiveBrowserSelectedFill =>
     kLiveBrowserSelectedColor.withValues(alpha: 0.15);
@@ -58,34 +24,28 @@ Color get kLiveBrowserSelectedFill =>
 Color get kLiveBrowserSelectedBorder =>
     kLiveBrowserSelectedColor.withValues(alpha: 0.8);
 
-// خلفية كحلية داكنة (ليست أسود صافياً) — الثيم الأصلي
-const Color kColorBack = Color(0xFF0A0F1C);
-const Color kColorBackDark = Color(0xFF151C2E);
+// Black surfaces; subtle differences are reserved for elevation only.
+const Color kColorBack = kSkyProBlack;
+const Color kColorBackDark = Color(0xFF080808);
 
-// ألوان الكروت بدرجات كحلية متوافقة مع الخلفية
-const Color kColorCardLight = Color(0xFF1C2538);
-const Color kColorCardDark = Color(0xFF141B2C);
-const Color kColorCardDarkness = Color(0xFF0A0F1C);
+const Color kColorCardLight = Color(0xFF101010);
+const Color kColorCardDark = Color(0xFF080808);
+const Color kColorCardDarkness = kSkyProBlack;
 
-/// الشريط العلوي (شعار + اسم التطبيق + بحث) — نفس أعلى تدرج الخلفية، ليس أسود.
-const Color kColorAppBar = Color(0xFF18233A);
+/// App bars use the pure-black brand surface.
+const Color kColorAppBar = kSkyProBlack;
 
-// ألوان النصوص الثانوية / الـ Hint
-const Color kColorHint = Color(0xFF8A8D98);
-const Color kColorHintGrey = Color(0xFF757575);
-const Color kColorFontLight = Color(0xFFFFFFFF);
+const Color kColorHint = kSkyProSilver;
+const Color kColorHintGrey = kSkyProSilver;
+const Color kColorFontLight = kSkyProSilver;
 
-/// تدرج الخلفية الافتراضي: كحلي من الأعلى نحو الأسفل.
+/// The SkyPro background stays pure black.
 LinearGradient get kDecorBackgroundGradient => const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        Color(0xFF18233A),
-        Color(0xFF0E1628),
-        Color(0xFF070B16),
-      ],
-      stops: [0.0, 0.48, 1.0],
-    );
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [kSkyProBlack, kSkyProBlack, kSkyProBlack],
+  stops: [0.0, 0.48, 1.0],
+);
 
 /// خلفية الشاشات: تدرج داكن ثابت. صورة `bg_main` تُستخدم فقط في [WelcomeScreen].
 BoxDecoration get kDecorBackground {
@@ -94,7 +54,5 @@ BoxDecoration get kDecorBackground {
 
 BoxDecoration get kDecorIconCircle => BoxDecoration(
   shape: BoxShape.circle,
-  gradient: LinearGradient(
-    colors: [kColorPrimaryDark, kColorPrimary],
-  ),
+  gradient: LinearGradient(colors: [kColorPrimaryDark, kColorPrimary]),
 );

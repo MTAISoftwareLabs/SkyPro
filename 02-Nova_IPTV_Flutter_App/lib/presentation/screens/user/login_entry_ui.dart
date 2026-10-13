@@ -2,19 +2,18 @@ part of '../screens.dart';
 
 /// ألوان واجهة الدخول الفاخرة.
 abstract final class LoginPremiumColors {
-  /// لون التمييز/التركيز — يتبع ثيم التطبيق (مش ذهب ثابت).
+  /// SkyPro blue accent.
   static Color get gold => kColorPrimary;
   static Color get goldDark => kColorPrimaryDark;
-  static const Color bgTop = Color(0xFF0A0E1A);
-  static const Color bgBottom = Color(0xFF050508);
-  static const Color greenActive = Color(0xFF4ADE80);
-  static const Color glassFill = Color(0x12FFFFFF);
-  static const Color glassBorder = Color(0x20FFFFFF);
+  static const Color bgTop = kSkyProBlack;
+  static const Color bgBottom = kSkyProBlack;
+  static const Color greenActive = kSkyProBlue;
+  static const Color glassFill = Color(0x12E0E0E0);
+  static const Color glassBorder = Color(0x55007BFF);
 
-  /// خلفية كروت طرق الدخول — كحل بارد غير شفاف.
-  static const Color methodCard = Color(0xFF0E1118);
-  static const Color methodCardDeep = Color(0xFF080A10);
-  static const Color methodCardBorder = Color(0xFF2A3140);
+  static const Color methodCard = Color(0xFF080808);
+  static const Color methodCardDeep = kSkyProBlack;
+  static const Color methodCardBorder = Color(0x55007BFF);
 }
 
 /// أحجام خطوط موحّدة لواجهات الدخول — أوضح على TV والهاتف.
@@ -30,7 +29,7 @@ abstract final class LoginPremiumTypography {
       isTv ? tv : mobile;
 }
 
-/// خلفية شاشة الدخول — صورة `back_login` (نفس أسلوب Desktop).
+/// Pure-black login background with a restrained SkyPro-blue glow.
 class _LoginEntryPremiumBackground extends StatelessWidget {
   const _LoginEntryPremiumBackground();
 
@@ -41,22 +40,14 @@ class _LoginEntryPremiumBackground extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           ColoredBox(color: LoginPremiumColors.bgBottom),
-          Image(
-            image: AssetImage(kLoginBackground),
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-            filterQuality: FilterQuality.medium,
-            gaplessPlayback: true,
-          ),
-          // تعتيم خفيف فالوسط باش الكروت والنصوص يبقاو واضحين.
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment.center,
                 radius: 0.95,
                 colors: [
-                  Color(0x59050508),
-                  Color(0x24050508),
+                  Color(0x1A007BFF),
+                  Color(0x08007BFF),
                   Colors.transparent,
                 ],
                 stops: [0.0, 0.55, 1.0],

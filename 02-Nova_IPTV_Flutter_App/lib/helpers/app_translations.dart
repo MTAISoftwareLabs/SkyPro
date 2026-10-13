@@ -6,7 +6,7 @@ class AppTranslations extends Translations {
   Map<String, Map<String, String>> get keys => {
     'ar': {
       // عام
-      'app_name': 'Nova IPTV Player',
+      'app_name': 'SkyPro',
       'back': 'عودة',
       'loading': 'جاري التحميل...',
       'loading_data': 'جاري تحميل البيانات...',
@@ -842,7 +842,7 @@ class AppTranslations extends Translations {
           "افتح التطبيق على هاتفك، ثم من الإعدادات اختر «إضافة جهاز» وامسح هذا الرمز لربط حسابك بهذا الجهاز.",
     },
     'en': {
-      'app_name': 'Nova IPTV Player',
+      'app_name': 'SkyPro',
       'back': 'Back',
       'loading': 'Loading...',
       'loading_data': 'Loading data...',
@@ -1687,7 +1687,7 @@ class AppTranslations extends Translations {
           "Open the app on your phone, go to Settings → \"Add device\", then scan this code to link your account to this device.",
     },
     'fr': {
-      'app_name': 'Nova IPTV Player',
+      'app_name': 'SkyPro',
       'back': 'Retour',
       'loading': 'Chargement...',
       'loading_data': 'Chargement des données...',
@@ -2548,7 +2548,7 @@ class AppTranslations extends Translations {
       'persian': 'فارسی',
     },
     'es': {
-      'app_name': 'Nova IPTV Player',
+      'app_name': 'SkyPro',
       'back': 'Atrás',
       'loading': 'Cargando...',
       'loading_data': 'Cargando datos...',
@@ -3404,7 +3404,7 @@ class AppTranslations extends Translations {
       'persian': 'فارسی',
     },
     'zh': {
-      'app_name': 'Nova IPTV Player',
+      'app_name': 'SkyPro',
       'back': '返回',
       'loading': '加载中...',
       'loading_data': '正在加载数据...',
@@ -4127,7 +4127,7 @@ class AppTranslations extends Translations {
       'persian': 'فارسی',
     },
     'it': {
-      'app_name': 'Nova IPTV Player',
+      'app_name': 'SkyPro',
       'back': 'Indietro',
       'loading': 'Caricamento...',
       'loading_data': 'Caricamento dati...',
@@ -4982,7 +4982,7 @@ class AppTranslations extends Translations {
       'persian': 'فارسی',
     },
     'fa': {
-      'app_name': 'Nova IPTV Player',
+      'app_name': 'SkyPro',
       'back': 'بازگشت',
       'loading': 'در حال بارگیری...',
       'loading_data': 'در حال بارگیری داده ها...',

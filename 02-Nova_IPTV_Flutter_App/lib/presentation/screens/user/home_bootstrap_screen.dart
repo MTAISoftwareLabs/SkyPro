@@ -384,7 +384,7 @@ class _BootstrapLoadingIndicatorState extends State<_BootstrapLoadingIndicator>
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      Color(0xFF38BDF8),
+                                      kSkyProBlue,
                                       Color(0xFF6366F1),
                                     ],
                                   ),

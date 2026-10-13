@@ -51,6 +51,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   /// شلّ التلفزيون: Home / Movies / Series / Favourites تحت شريط واحد.
   SmartTvShellTab _tvShellTab = SmartTvShellTab.home;
+
   /// ما نبنيش تبويبات ثقيلة مع أول إطار ديال Home — هادا اللي كيعلّق bootstrap على 100%.
   final Set<SmartTvShellTab> _tvBuiltPanes = {SmartTvShellTab.home};
   final GlobalKey<MovieCategoriesScreenState> _tvMoviesKey =
@@ -383,62 +384,81 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           WelcomeScreen._showAppExitConfirm(Get.context!);
         },
         child: Scaffold(
-          backgroundColor: const Color(0xFF18233A),
-          body: Column(
+          backgroundColor: kSkyProBlack,
+          body: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _SmartTvHomeTopBar(
+                sideRail: true,
                 selected: _tvShellTab,
                 onSelectTab: (tab) {
                   unawaited(_selectTvShellTab(tab));
                 },
-                onArrowDownToContent: _focusTvShellContent,
-                onSearchClosed: _focusAfterTopSearchDismiss,
+                onArrowRightToContent: _focusTvShellContent,
               ),
               Expanded(
-                child: IndexedStack(
-                  sizing: StackFit.expand,
-                  index: switch (_tvShellTab) {
-                    SmartTvShellTab.home || SmartTvShellTab.live => 0,
-                    SmartTvShellTab.movies => 1,
-                    SmartTvShellTab.series => 2,
-                    SmartTvShellTab.favourites => 3,
-                  },
+                child: Column(
                   children: [
-                    ExcludeFocus(
-                      excluding: _tvShellTab != SmartTvShellTab.home,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: smartTvHomeSideInset(context),
-                        ),
-                        child: homeBody,
+                    _SmartTvHomeTopBar(
+                      utilitiesOnly: true,
+                      selected: _tvShellTab,
+                      onArrowDownToContent: _focusTvShellContent,
+                      onSearchClosed: _focusAfterTopSearchDismiss,
+                    ),
+                    Expanded(
+                      child: IndexedStack(
+                        sizing: StackFit.expand,
+                        index: switch (_tvShellTab) {
+                          SmartTvShellTab.home || SmartTvShellTab.live => 0,
+                          SmartTvShellTab.movies => 1,
+                          SmartTvShellTab.series => 2,
+                          SmartTvShellTab.favourites => 3,
+                        },
+                        children: [
+                          ExcludeFocus(
+                            excluding: _tvShellTab != SmartTvShellTab.home,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: smartTvHomeSideInset(context),
+                              ),
+                              child: homeBody,
+                            ),
+                          ),
+                          ExcludeFocus(
+                            excluding: _tvShellTab != SmartTvShellTab.movies,
+                            child:
+                                _tvBuiltPanes.contains(SmartTvShellTab.movies)
+                                ? MovieCategoriesScreen(
+                                    key: _tvMoviesKey,
+                                    embeddedInTvShell: true,
+                                  )
+                                : const SizedBox.expand(),
+                          ),
+                          ExcludeFocus(
+                            excluding: _tvShellTab != SmartTvShellTab.series,
+                            child:
+                                _tvBuiltPanes.contains(SmartTvShellTab.series)
+                                ? SeriesCategoriesScreen(
+                                    key: _tvSeriesKey,
+                                    embeddedInTvShell: true,
+                                  )
+                                : const SizedBox.expand(),
+                          ),
+                          ExcludeFocus(
+                            excluding:
+                                _tvShellTab != SmartTvShellTab.favourites,
+                            child:
+                                _tvBuiltPanes.contains(
+                                  SmartTvShellTab.favourites,
+                                )
+                                ? FavouriteScreen(
+                                    key: _tvFavKey,
+                                    embeddedInTvShell: true,
+                                  )
+                                : const SizedBox.expand(),
+                          ),
+                        ],
                       ),
-                    ),
-                    ExcludeFocus(
-                      excluding: _tvShellTab != SmartTvShellTab.movies,
-                      child: _tvBuiltPanes.contains(SmartTvShellTab.movies)
-                          ? MovieCategoriesScreen(
-                              key: _tvMoviesKey,
-                              embeddedInTvShell: true,
-                            )
-                          : const SizedBox.expand(),
-                    ),
-                    ExcludeFocus(
-                      excluding: _tvShellTab != SmartTvShellTab.series,
-                      child: _tvBuiltPanes.contains(SmartTvShellTab.series)
-                          ? SeriesCategoriesScreen(
-                              key: _tvSeriesKey,
-                              embeddedInTvShell: true,
-                            )
-                          : const SizedBox.expand(),
-                    ),
-                    ExcludeFocus(
-                      excluding: _tvShellTab != SmartTvShellTab.favourites,
-                      child: _tvBuiltPanes.contains(SmartTvShellTab.favourites)
-                          ? FavouriteScreen(
-                              key: _tvFavKey,
-                              embeddedInTvShell: true,
-                            )
-                          : const SizedBox.expand(),
                     ),
                   ],
                 ),
