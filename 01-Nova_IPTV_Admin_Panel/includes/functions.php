@@ -1207,6 +1207,50 @@ function createDatabaseTable($conn) {
             $conn->exec("ALTER TABLE settings ADD COLUMN app_activation_url VARCHAR(1200) DEFAULT NULL");
         } catch (PDOException $e) {}
 
+        // SkyPro Xtream Codes / IPTV Server API Settings & Customers Table
+        try {
+            $conn->exec("ALTER TABLE settings ADD COLUMN xtream_api_url VARCHAR(500) DEFAULT 'http://skypro-app.com:25463'");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE settings ADD COLUMN xtream_api_key VARCHAR(255) DEFAULT ''");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE settings ADD COLUMN xtream_api_username VARCHAR(255) DEFAULT ''");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE settings ADD COLUMN xtream_api_password VARCHAR(255) DEFAULT ''");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE settings ADD COLUMN xtream_api_type VARCHAR(50) DEFAULT 'xtream_codes'");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE settings ADD COLUMN xtream_sync_enabled TINYINT(1) DEFAULT 1");
+        } catch (PDOException $e) {}
+
+        try {
+            $conn->exec("CREATE TABLE IF NOT EXISTS iptv_customers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(255) NOT NULL UNIQUE,
+                password VARCHAR(255) NOT NULL,
+                customer_name VARCHAR(255) DEFAULT NULL,
+                email VARCHAR(255) DEFAULT NULL,
+                phone VARCHAR(100) DEFAULT NULL,
+                expiry_date DATETIME NOT NULL,
+                max_connections INT DEFAULT 1,
+                package_name VARCHAR(255) DEFAULT 'Standard',
+                status ENUM('active', 'expired', 'disabled') DEFAULT 'active',
+                created_by INT DEFAULT NULL,
+                server_sync_status ENUM('synced', 'pending', 'error') DEFAULT 'pending',
+                server_sync_message TEXT DEFAULT NULL,
+                notes TEXT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_cust_username (username),
+                INDEX idx_cust_status (status),
+                INDEX idx_cust_expiry (expiry_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        } catch (PDOException $e) {}
+
         // إنشاء جدول ملاحظات العملاء
         $sql = "CREATE TABLE IF NOT EXISTS client_feedback (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1524,6 +1568,12 @@ function ensureSettingsColumns(PDO $conn): void
         "ALTER TABLE settings ADD COLUMN hero_promo_link_url TEXT DEFAULT NULL",
         "ALTER TABLE settings ADD COLUMN hero_banner_count INT NOT NULL DEFAULT 5",
         "ALTER TABLE settings ADD COLUMN hero_content_mode VARCHAR(20) NOT NULL DEFAULT 'auto'",
+        "ALTER TABLE settings ADD COLUMN xtream_api_url VARCHAR(500) DEFAULT 'http://skypro-app.com:25463'",
+        "ALTER TABLE settings ADD COLUMN xtream_api_key VARCHAR(256) DEFAULT NULL",
+        "ALTER TABLE settings ADD COLUMN xtream_api_username VARCHAR(128) DEFAULT NULL",
+        "ALTER TABLE settings ADD COLUMN xtream_api_password VARCHAR(256) DEFAULT NULL",
+        "ALTER TABLE settings ADD COLUMN xtream_api_type VARCHAR(64) NOT NULL DEFAULT 'xtream_codes'",
+        "ALTER TABLE settings ADD COLUMN xtream_sync_enabled TINYINT(1) NOT NULL DEFAULT 1",
     ];
     foreach ($alters as $sql) {
         try {
@@ -1594,6 +1644,12 @@ function getSettings($conn) {
         'hero_promo_link_url' => null,
         'hero_banner_count' => 5,
         'hero_content_mode' => 'auto',
+        'xtream_api_url' => 'http://skypro-app.com:25463',
+        'xtream_api_key' => '',
+        'xtream_api_username' => '',
+        'xtream_api_password' => '',
+        'xtream_api_type' => 'xtream_codes',
+        'xtream_sync_enabled' => 1,
     ];
     try {
         $stmt = $conn->query("SELECT * FROM settings LIMIT 1");
@@ -1858,6 +1914,7 @@ function updateSettingsPartial(PDO $conn, array $patch): bool
         'sync_activation_with_server', 'activation_enforced',
         'block_screenshots', 'onesignal_enabled',
         'hero_promo_enabled', 'hero_banner_count',
+        'xtream_sync_enabled',
     ];
     $stringFields = [
         'default_server_url', 'login_servers', 'piracy_packages', 'piracy_message',
@@ -1871,6 +1928,7 @@ function updateSettingsPartial(PDO $conn, array $patch): bool
         'privacy_policy_url', 'privacy_policy_html', 'privacy_policy_mode', 'about_us_html',
         'tmdb_api_key', 'opensubtitles_api_key', 'opensubtitles_username', 'opensubtitles_password',
         'onesignal_app_id', 'onesignal_rest_api_key',
+        'xtream_api_url', 'xtream_api_key', 'xtream_api_username', 'xtream_api_password', 'xtream_api_type',
     ];
     $allowed = array_merge($intFields, $stringFields);
 
@@ -2211,6 +2269,150 @@ function save_login_servers(PDO $conn, array $servers): bool
         $stmt = $conn->prepare('UPDATE settings SET login_servers = ?');
         return $stmt->execute([$json]);
     } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * SkyPro Customer / Line Management Helpers
+ */
+function syncExpiredCustomers(PDO $conn): void
+{
+    try {
+        $stmt = $conn->prepare("UPDATE iptv_customers SET status = 'expired' WHERE status = 'active' AND expiry_date < NOW()");
+        $stmt->execute();
+    } catch (Throwable $e) {}
+}
+
+function getCustomers(PDO $conn, string $filter = '', string $search = ''): array
+{
+    syncExpiredCustomers($conn);
+    try {
+        $sql = "SELECT c.*, u.username AS creator_username FROM iptv_customers c LEFT JOIN admin_users u ON c.created_by = u.id WHERE 1=1";
+        $params = [];
+        if ($filter === 'active') {
+            $sql .= " AND c.status = 'active'";
+        } elseif ($filter === 'expired') {
+            $sql .= " AND c.status = 'expired'";
+        } elseif ($filter === 'disabled') {
+            $sql .= " AND c.status = 'disabled'";
+        }
+        if ($search !== '') {
+            $sql .= " AND (c.username LIKE ? OR c.customer_name LIKE ? OR c.email LIKE ? OR c.phone LIKE ?)";
+            $q = '%' . $search . '%';
+            $params[] = $q;
+            $params[] = $q;
+            $params[] = $q;
+            $params[] = $q;
+        }
+        $sql .= " ORDER BY c.id DESC";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+function getCustomerById(PDO $conn, int $id): ?array
+{
+    try {
+        $stmt = $conn->prepare("SELECT * FROM iptv_customers WHERE id = ? LIMIT 1");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function addCustomer(PDO $conn, array $data): array
+{
+    $username = trim((string)($data['username'] ?? ''));
+    $password = (string)($data['password'] ?? '');
+    $customerName = trim((string)($data['customer_name'] ?? ''));
+    $email = trim((string)($data['email'] ?? ''));
+    $phone = trim((string)($data['phone'] ?? ''));
+    $expiryDate = (string)($data['expiry_date'] ?? '');
+    $maxConnections = max(1, (int)($data['max_connections'] ?? 1));
+    $packageName = trim((string)($data['package_name'] ?? 'Standard'));
+    $notes = trim((string)($data['notes'] ?? ''));
+    $createdBy = isset($_SESSION['admin_user_id']) ? (int)$_SESSION['admin_user_id'] : null;
+
+    if ($username === '' || $password === '' || $expiryDate === '') {
+        return ['success' => false, 'message' => 'Username, password and expiry date are required.'];
+    }
+
+    try {
+        $check = $conn->prepare("SELECT id FROM iptv_customers WHERE username = ? LIMIT 1");
+        $check->execute([$username]);
+        if ($check->fetch()) {
+            return ['success' => false, 'message' => 'A customer with this username already exists.'];
+        }
+
+        $ins = $conn->prepare("INSERT INTO iptv_customers (username, password, customer_name, email, phone, expiry_date, max_connections, package_name, notes, created_by, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')");
+        $ins->execute([$username, $password, $customerName ?: null, $email ?: null, $phone ?: null, $expiryDate, $maxConnections, $packageName, $notes ?: null, $createdBy]);
+        $newId = (int)$conn->lastInsertId();
+
+        // Sync with Xtream Codes IPTV streaming server
+        require_once __DIR__ . '/xtream_api.php';
+        $syncResult = xtream_create_line($conn, [
+            'username' => $username,
+            'password' => $password,
+            'expiry_date' => $expiryDate,
+            'max_connections' => $maxConnections,
+            'notes' => $customerName ?: $notes,
+        ]);
+
+        $syncStatus = $syncResult['synced'] ? 'synced' : 'pending';
+        $syncMsg = $syncResult['message'] ?? '';
+        $upd = $conn->prepare("UPDATE iptv_customers SET server_sync_status = ?, server_sync_message = ? WHERE id = ?");
+        $upd->execute([$syncStatus, $syncMsg, $newId]);
+
+        return [
+            'success' => true,
+            'id' => $newId,
+            'synced' => $syncResult['synced'] ?? false,
+            'sync_message' => $syncMsg,
+        ];
+    } catch (Throwable $e) {
+        return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
+    }
+}
+
+function extendCustomer(PDO $conn, int $id, int $days): bool
+{
+    try {
+        $c = getCustomerById($conn, $id);
+        if (!$c) return false;
+        $curExp = strtotime((string)$c['expiry_date']);
+        $base = ($curExp && $curExp > time()) ? $curExp : time();
+        $newExp = date('Y-m-d H:i:s', $base + ($days * 86400));
+        $stmt = $conn->prepare("UPDATE iptv_customers SET expiry_date = ?, status = 'active' WHERE id = ?");
+        return $stmt->execute([$newExp, $id]);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function deleteCustomer(PDO $conn, int $id): bool
+{
+    try {
+        $stmt = $conn->prepare("DELETE FROM iptv_customers WHERE id = ?");
+        return $stmt->execute([$id]);
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function toggleCustomerStatus(PDO $conn, int $id): bool
+{
+    try {
+        $c = getCustomerById($conn, $id);
+        if (!$c) return false;
+        $newStatus = ($c['status'] === 'active') ? 'disabled' : 'active';
+        $stmt = $conn->prepare("UPDATE iptv_customers SET status = ? WHERE id = ?");
+        return $stmt->execute([$newStatus, $id]);
+    } catch (Throwable $e) {
         return false;
     }
 }

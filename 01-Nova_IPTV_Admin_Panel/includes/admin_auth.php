@@ -14,6 +14,7 @@ if (!defined('ADMIN_ROLE_SUPER_ADMIN')) {
     define('ADMIN_ROLE_SUPER_ADMIN', 'super_admin');
     define('ADMIN_ROLE_ADMIN', 'admin');
     define('ADMIN_ROLE_MODERATOR', 'moderator');
+    define('ADMIN_ROLE_RESELLER', 'reseller');
     define('ADMIN_ROLE_VIEWER', 'viewer');
 }
 
@@ -25,6 +26,7 @@ if (!function_exists('adminAllRoles')) {
             ADMIN_ROLE_SUPER_ADMIN,
             ADMIN_ROLE_ADMIN,
             ADMIN_ROLE_MODERATOR,
+            ADMIN_ROLE_RESELLER,
             ADMIN_ROLE_VIEWER,
         ];
     }
@@ -35,6 +37,7 @@ if (!function_exists('adminAllRoles')) {
         return [
             ADMIN_ROLE_ADMIN,
             ADMIN_ROLE_MODERATOR,
+            ADMIN_ROLE_RESELLER,
             ADMIN_ROLE_VIEWER,
         ];
     }
@@ -64,6 +67,11 @@ if (!function_exists('adminAllRoles')) {
         return $role === ADMIN_ROLE_MODERATOR;
     }
 
+    function adminRoleIsReseller(string $role): bool
+    {
+        return $role === ADMIN_ROLE_RESELLER;
+    }
+
     function adminRoleIsGuest(string $role): bool
     {
         return $role === ADMIN_ROLE_VIEWER;
@@ -75,6 +83,7 @@ if (!function_exists('adminAllRoles')) {
             ADMIN_ROLE_SUPER_ADMIN => 'role.super_admin',
             ADMIN_ROLE_ADMIN => 'role.admin',
             ADMIN_ROLE_MODERATOR => 'role.moderator',
+            ADMIN_ROLE_RESELLER => 'role.reseller',
             ADMIN_ROLE_VIEWER => 'role.viewer',
         ];
         $key = $keys[$role] ?? $role;
@@ -95,6 +104,9 @@ if (!function_exists('adminBuiltinDefaultRolePermissions')) {
             ADMIN_ROLE_MODERATOR => [
                 'profile', 'dashboard', 'devices_view', 'devices_add', 'devices_edit',
                 'feedbacks', 'feedbacks_delete', 'expiring',
+            ],
+            ADMIN_ROLE_RESELLER => [
+                'profile', 'dashboard', 'devices_view', 'devices_add', 'devices_edit', 'expiring',
             ],
             ADMIN_ROLE_VIEWER => [
                 'profile', 'dashboard', 'devices_view', 'feedbacks', 'expiring',

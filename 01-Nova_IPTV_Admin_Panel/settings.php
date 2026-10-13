@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checkboxFields = [
             'auto_block_expired', 'block_vpn_global', 'ads_enabled',
             'sync_activation_with_server', 'activation_enforced', 'block_screenshots', 'piracy_detection_enabled',
-            'onesignal_enabled', 'hero_promo_enabled',
+            'onesignal_enabled', 'hero_promo_enabled', 'xtream_sync_enabled',
         ];
         $patch = [];
         foreach ($fields as $field) {
@@ -194,6 +194,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $onesignal_enabled = isset($_POST['onesignal_enabled']) ? 1 : 0;
     $onesignal_app_id = trim((string)($_POST['onesignal_app_id'] ?? ''));
     $onesignal_rest_api_key = trim((string)($_POST['onesignal_rest_api_key'] ?? ''));
+    $xtream_api_url = trim((string)($_POST['xtream_api_url'] ?? 'http://skypro-app.com:25463'));
+    $xtream_api_key = trim((string)($_POST['xtream_api_key'] ?? ''));
+    $xtream_api_username = trim((string)($_POST['xtream_api_username'] ?? ''));
+    $xtream_api_password = (string)($_POST['xtream_api_password'] ?? '');
+    $xtream_api_type = trim((string)($_POST['xtream_api_type'] ?? 'xtream_codes'));
+    $xtream_sync_enabled = isset($_POST['xtream_sync_enabled']) ? 1 : 0;
     $loginParsed = login_servers_from_post($_POST);
     $loginServersOk = !empty($loginParsed['ok']);
     $loginServers = $loginServersOk ? ($loginParsed['servers'] ?? []) : [];
@@ -264,6 +270,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'tv_banner_image_url' => $tv_banner_image_url,
                 'tv_banner_click_url' => $tv_banner_click_url,
                 'tv_banner_html_url' => $tv_banner_html_url,
+                'xtream_api_url' => $xtream_api_url,
+                'xtream_api_key' => $xtream_api_key,
+                'xtream_api_username' => $xtream_api_username,
+                'xtream_api_password' => $xtream_api_password,
+                'xtream_api_type' => $xtream_api_type,
+                'xtream_sync_enabled' => $xtream_sync_enabled,
             ]);
             // هيرو: حفظ منفصل عموداً بعمود (TEXT + bypass جدران نارية على *_url).
             saveHeroSettings($conn, [
@@ -467,6 +479,13 @@ $settingsCssVer = is_file($settingsCssPath) ? (string) filemtime($settingsCssPat
                                             <span class="ns-setting__tab-txt">
                                                 <span class="ns-setting__tab-title"><?php echo $lang === 'ar' ? 'التكاملات' : 'Integrations'; ?></span>
                                                 <span class="ns-setting__tab-sub">TMDB · OneSignal</span>
+                                            </span>
+                                        </button>
+                                        <button type="button" class="ns-setting__tab" role="tab" data-pane="iptv" aria-selected="false">
+                                            <span class="ns-setting__tab-ico"><i class="fas fa-server"></i></span>
+                                            <span class="ns-setting__tab-txt">
+                                                <span class="ns-setting__tab-title"><?php echo $lang === 'ar' ? 'سيرفر البث' : 'IPTV Server'; ?></span>
+                                                <span class="ns-setting__tab-sub"><?php echo $lang === 'ar' ? 'مفاتيح Xtream API' : 'Xtream API & Keys'; ?></span>
                                             </span>
                                         </button>
                                         <button type="button" class="ns-setting__tab" role="tab" data-pane="security" aria-selected="false">
@@ -1176,6 +1195,99 @@ $settingsCssVer = is_file($settingsCssPath) ? (string) filemtime($settingsCssPat
                             </div>
                             </div>
 
+                            <!-- ========== IPTV STREAMING SERVER & XTREAM API ========== -->
+                            <div class="ns-pane" id="ns-pane-iptv" role="tabpanel" data-pane="iptv" hidden>
+                                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                                    <div>
+                                        <h4 class="ns-pane__title mb-1"><i class="fas fa-server text-primary"></i> <?php echo $lang === 'ar' ? 'سيرفر البث المباشر ومفاتيح Xtream Codes API' : 'IPTV Streaming Server & Xtream Codes API'; ?></h4>
+                                        <p class="ns-pane__hint mb-0"><?php echo $lang === 'ar' ? 'ربط لوحة الإدارة مع سيرفر البث لإصدار الاشتراكات ومزامنة العملاء تلقائياً.' : 'Connect SkyPro admin panel directly to your streaming server to issue lines and sync customer credentials automatically.'; ?></p>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-outline-info btn-sm px-3" id="btnTestXtreamApi">
+                                            <i class="fas fa-plug me-1"></i> <span id="btnTestXtreamApiText"><?php echo $lang === 'ar' ? 'اختبار الاتصال بالسيرفر' : 'Test API Connection'; ?></span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="xtreamTestAlert" style="display:none;" class="alert mb-3"></div>
+
+                                <div class="feature-toggle mb-3">
+                                    <div class="feature-left">
+                                        <div>
+                                            <div class="feature-title"><i class="fas fa-arrows-rotate feature-inline-icon"></i> <?php echo $lang === 'ar' ? 'المزامنة التلقائية مع سيرفر البث' : 'Automatic IPTV Server Sync'; ?></div>
+                                            <div class="feature-desc"><?php echo $lang === 'ar' ? 'مزامنة الاشتراكات الجديدة وكلمات المرور تلقائياً مع السيرفر فور إنشائها في لوحة الإدارة.' : 'Automatically sync customer accounts and passwords with your Xtream server when created or updated.'; ?></div>
+                                        </div>
+                                    </div>
+                                    <div class="toggle-wrapper">
+                                        <span class="toggle-label off"><?php echo t('off'); ?></span>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="xtream_sync_enabled" name="xtream_sync_enabled" value="1" <?php echo !empty($settings['xtream_sync_enabled']) ? 'checked' : ''; ?>>
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span class="toggle-label on"><?php echo t('on'); ?></span>
+                                    </div>
+                                </div>
+
+                                <div class="settings-grid-2">
+                                    <div class="settings-field">
+                                        <label for="xtream_api_url" class="form-label"><i class="fas fa-link"></i> <?php echo $lang === 'ar' ? 'عنوان سيرفر البث (IP:Port أو Domain:Port)' : 'IPTV Server URL (with Port)'; ?></label>
+                                        <input type="text" class="form-control field-mono" id="xtream_api_url" name="xtream_api_url"
+                                               value="<?php echo htmlspecialchars($settings['xtream_api_url'] ?? 'http://skypro-app.com:25463'); ?>"
+                                               placeholder="http://skypro-app.com:25463">
+                                        <span class="settings-field__help"><?php echo $lang === 'ar' ? 'عنوان السيرفر الكامل مع المنفذ (الافتراضي: http://skypro-app.com:25463)' : 'Full streaming server URL including port (default: http://skypro-app.com:25463)'; ?></span>
+                                    </div>
+
+                                    <div class="settings-field">
+                                        <label for="xtream_api_type" class="form-label"><i class="fas fa-layer-group"></i> <?php echo $lang === 'ar' ? 'نوع لوحة السيرفر (Panel Type)' : 'Server Panel Type'; ?></label>
+                                        <select class="form-select" id="xtream_api_type" name="xtream_api_type">
+                                            <option value="xtream_codes" <?php echo (($settings['xtream_api_type'] ?? '') === 'xtream_codes') ? 'selected' : ''; ?>>Xtream Codes / XC UI</option>
+                                            <option value="xui_one" <?php echo (($settings['xtream_api_type'] ?? '') === 'xui_one') ? 'selected' : ''; ?>>XUI One API</option>
+                                            <option value="one_stream" <?php echo (($settings['xtream_api_type'] ?? '') === 'one_stream') ? 'selected' : ''; ?>>1Stream / OneStream</option>
+                                            <option value="zapx" <?php echo (($settings['xtream_api_type'] ?? '') === 'zapx') ? 'selected' : ''; ?>>ZapX Panel</option>
+                                        </select>
+                                        <span class="settings-field__help"><?php echo $lang === 'ar' ? 'نوع نظام إدارة البث المستخدم لتطبيق بروتوكول التزامن' : 'The panel software running on your streaming server.'; ?></span>
+                                    </div>
+
+                                    <div class="settings-field">
+                                        <label for="xtream_api_username" class="form-label"><i class="fas fa-user-shield"></i> <?php echo $lang === 'ar' ? 'اسم مستخدم الإدارة / الموزع (Reseller / Admin User)' : 'Admin / Reseller API Username'; ?></label>
+                                        <input type="text" class="form-control" id="xtream_api_username" name="xtream_api_username"
+                                               value="<?php echo htmlspecialchars($settings['xtream_api_username'] ?? ''); ?>"
+                                               placeholder="<?php echo $lang === 'ar' ? 'اسم حساب الموزع أو المدير' : 'Reseller / Admin account name'; ?>"
+                                               autocomplete="off">
+                                        <span class="settings-field__help"><?php echo $lang === 'ar' ? 'الحساب المستخدم لإنشاء خطوط البث عبر API' : 'Account credential used to create streaming lines via API'; ?></span>
+                                    </div>
+
+                                    <div class="settings-field">
+                                        <label for="xtream_api_password" class="form-label"><i class="fas fa-lock"></i> <?php echo $lang === 'ar' ? 'كلمة مرور الإدارة / الموزع (Reseller Password)' : 'Admin / Reseller API Password'; ?></label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control" id="xtream_api_password" name="xtream_api_password"
+                                                   value="<?php echo htmlspecialchars($settings['xtream_api_password'] ?? ''); ?>"
+                                                   placeholder="••••••••" autocomplete="new-password">
+                                            <button type="button" class="btn" id="xtream_api_password_toggle"
+                                                    title="<?php echo $lang === 'ar' ? 'إظهار / إخفاء كلمة المرور' : 'Show / hide password'; ?>">
+                                                <i class="fas fa-eye" id="xtream_api_password_icon"></i>
+                                            </button>
+                                        </div>
+                                        <span class="settings-field__help"><?php echo $lang === 'ar' ? 'كلمة مرور حساب الموزع على سيرفر البث' : 'Password for the reseller/admin API account'; ?></span>
+                                    </div>
+                                </div>
+
+                                <div class="settings-field mt-2">
+                                    <label for="xtream_api_key" class="form-label"><i class="fas fa-key"></i> <?php echo $lang === 'ar' ? 'مفتاح الـ API الرئيسي / السري (Server Master API Key / Token)' : 'Server Master API Key / Token'; ?></label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control field-mono" id="xtream_api_key" name="xtream_api_key"
+                                               value="<?php echo htmlspecialchars($settings['xtream_api_key'] ?? ''); ?>"
+                                               placeholder="<?php echo $lang === 'ar' ? 'أدخل مفتاح الـ API إن كانت اللوحة تتطلب مفتاحاً سرياً' : 'Enter API Token if required by panel (e.g. XUI One secret key)'; ?>"
+                                               autocomplete="new-password">
+                                        <button type="button" class="btn" id="xtream_api_key_toggle"
+                                                title="<?php echo $lang === 'ar' ? 'إظهار / إخفاء المفتاح' : 'Show / hide key'; ?>">
+                                            <i class="fas fa-eye" id="xtream_api_key_icon"></i>
+                                        </button>
+                                    </div>
+                                    <span class="settings-field__help"><?php echo $lang === 'ar' ? 'مفتاح API الخاص بالسيرفر المستخدم للمصادقة المباشرة وحماية طلبات اللوحة.' : 'Master API key used for Bearer/Header token authorization on supported IPTV servers.'; ?></span>
+                                </div>
+                            </div>
+
                                 </div><!-- /.ns-setting__content -->
                             </div><!-- /.ns-setting -->
 
@@ -1659,8 +1771,92 @@ window.togglePrivacyPolicyFields = function () {
   });
 })();
 
+// Xtream Codes API Test & Password Toggles
+(function () {
+  function setupToggle(btnId, inputId, iconId) {
+    var btn = document.getElementById(btnId);
+    var inp = document.getElementById(inputId);
+    var ico = document.getElementById(iconId);
+    if (!btn || !inp) return;
+    btn.addEventListener('click', function () {
+      var isPass = inp.type === 'password';
+      inp.type = isPass ? 'text' : 'password';
+      if (ico) {
+        ico.classList.toggle('fa-eye', !isPass);
+        ico.classList.toggle('fa-eye-slash', isPass);
+      }
+    });
+  }
+
+  setupToggle('xtream_api_password_toggle', 'xtream_api_password', 'xtream_api_password_icon');
+  setupToggle('xtream_api_key_toggle', 'xtream_api_key', 'xtream_api_key_icon');
+
+  var testBtn = document.getElementById('btnTestXtreamApi');
+  var testBtnText = document.getElementById('btnTestXtreamApiText');
+  var alertBox = document.getElementById('xtreamTestAlert');
+
+  if (testBtn) {
+    testBtn.addEventListener('click', function () {
+      var urlInput = document.getElementById('xtream_api_url');
+      var keyInput = document.getElementById('xtream_api_key');
+      var userInput = document.getElementById('xtream_api_username');
+      var passInput = document.getElementById('xtream_api_password');
+      var typeInput = document.getElementById('xtream_api_type');
+
+      var payload = {
+        server_url: (urlInput ? urlInput.value : '').trim(),
+        api_key: (keyInput ? keyInput.value : '').trim(),
+        username: (userInput ? userInput.value : '').trim(),
+        password: (passInput ? passInput.value : ''),
+        api_type: (typeInput ? typeInput.value : 'xtream_codes')
+      };
+
+      if (!payload.server_url) {
+        if (alertBox) {
+          alertBox.className = 'alert alert-warning mb-3';
+          alertBox.style.display = 'block';
+          alertBox.innerHTML = '<i class="fas fa-triangle-exclamation me-2"></i> Please enter the IPTV Server URL first.';
+        }
+        return;
+      }
+
+      var origHtml = testBtn.innerHTML;
+      testBtn.disabled = true;
+      testBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Testing...';
+      if (alertBox) alertBox.style.display = 'none';
+
+      fetch('api/test_xtream_connection.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        testBtn.disabled = false;
+        testBtn.innerHTML = origHtml;
+        if (!alertBox) return;
+        alertBox.style.display = 'block';
+        if (res.success) {
+          alertBox.className = 'alert alert-success mb-3';
+          alertBox.innerHTML = '<div class="d-flex align-items-center justify-content-between"><div><i class="fas fa-check-circle me-2"></i><strong>' + (res.message || 'Connected successfully!') + '</strong></div><span class="badge bg-success">' + (res.latency_ms || 0) + ' ms</span></div>' +
+            (res.authenticated ? '<div class="small mt-1 text-success-emphasis"><i class="fas fa-shield-halved me-1"></i> Reseller credentials verified successfully on streaming server.</div>' : '<div class="small mt-1"><i class="fas fa-info-circle me-1"></i> Server reachable (HTTP ' + (res.http_code || 200) + '). Save settings to start provisioning customers.</div>');
+        } else {
+          alertBox.className = 'alert alert-danger mb-3';
+          alertBox.innerHTML = '<i class="fas fa-circle-exclamation me-2"></i><strong>Connection failed:</strong> ' + (res.message || 'Server did not respond') + ' (' + (res.latency_ms || 0) + ' ms)';
+        }
+      })
+      .catch(function (err) {
+        testBtn.disabled = false;
+        testBtn.innerHTML = origHtml;
+        if (!alertBox) return;
+        alertBox.className = 'alert alert-danger mb-3';
+        alertBox.style.display = 'block';
+        alertBox.innerHTML = '<i class="fas fa-circle-exclamation me-2"></i><strong>Network error:</strong> ' + err.message;
+      });
+    });
+  }
+})();
+
 </script>
 </body>
-</html> 
-</html> 
 </html> 

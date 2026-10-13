@@ -247,6 +247,7 @@ $translations = [
         'role.super_admin' => 'مسؤول أعلى (كل الصلاحيات)',
         'role.admin' => 'مدير',
         'role.moderator' => 'مشرف',
+        'role.reseller' => 'موزع (Reseller)',
         'role.viewer' => 'زائر',
 
         'users.perm_matrix_title' => 'إعدادات متقدمة: صلاحيات الأدوار',
@@ -1080,6 +1081,7 @@ $translations = [
         'role.super_admin' => 'Super admin (full access)',
         'role.admin' => 'Administrator',
         'role.moderator' => 'Moderator',
+        'role.reseller' => 'Reseller',
         'role.viewer' => 'Guest',
 
         'users.perm_matrix_title' => 'Advanced: role permissions',

@@ -482,14 +482,13 @@ body {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'admin_users' ? 'active' : ''; ?>" href="admin_users.php">
-                        <i class="fas fa-user-shield"></i><span><?php echo t('nav.admin_users'); ?></span>
+                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'customers' ? 'active' : ''; ?>" href="customers.php">
+                        <i class="fas fa-users"></i><span><?php echo $lang === 'ar' ? 'المشتركون' : 'Customers'; ?></span>
                     </a>
                 </li>
-
                 <li class="nav-item">
-                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'playlist_codes' ? 'active' : ''; ?>" href="playlist_codes.php">
-                        <i class="fas fa-qrcode"></i><span><?php echo t('nav.playlist_codes'); ?></span>
+                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'admin_users' ? 'active' : ''; ?>" href="admin_users.php">
+                        <i class="fas fa-user-shield"></i><span><?php echo $lang === 'ar' ? 'الموظفون والموزعون' : 'Staff & Resellers'; ?></span>
                     </a>
                 </li>
                 <li class="nav-item">
