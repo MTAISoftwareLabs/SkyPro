@@ -482,11 +482,6 @@ body {
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'add_device' ? 'active' : ''; ?>" href="add_device.php">
-                        <i class="fas fa-plus-circle"></i><span><?php echo t('nav.add_device'); ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'admin_users' ? 'active' : ''; ?>" href="admin_users.php">
                         <i class="fas fa-user-shield"></i><span><?php echo t('nav.admin_users'); ?></span>
                     </a>
