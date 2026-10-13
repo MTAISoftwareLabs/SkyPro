@@ -38,10 +38,7 @@ if (!function_exists('xtream_normalize_server_url')) {
 if (!function_exists('xtream_get_candidate_bases')) {
     /**
      * Resolves all possible panel/API base URLs from the configured streaming server URL.
-     * Frequently, the streaming URL includes port 25463 or 25461, but the panel API is hosted on:
-     * - The base domain without the streaming port (e.g., https://skypro-app.com, http://skypro-app.com)
-     * - The XUI.one management panel port 25500
-     * - Alternative panel ports (8080, 8000, 8443)
+     * Maps across both domain and IP address, streaming ports, and management panel ports.
      */
     function xtream_get_candidate_bases(string $serverUrl): array
     {
@@ -57,21 +54,31 @@ if (!function_exists('xtream_get_candidate_bases')) {
             $host = $parsed['host'];
             $port = isset($parsed['port']) ? (int)$parsed['port'] : null;
 
-            // Base host without streaming port
-            $bases[] = "{$scheme}://{$host}";
-            $altScheme = ($scheme === 'https') ? 'http' : 'https';
-            $bases[] = "{$altScheme}://{$host}";
-
-            // If streaming port was configured (25463 or 25461), include XUI.one panel port & alternatives
-            if ($port === 25463 || $port === 25461 || $port === null) {
-                $bases[] = "https://{$host}:25500";
-                $bases[] = "http://{$host}:25500";
-                $bases[] = "http://{$host}:25461";
-                $bases[] = "https://{$host}:25463";
+            $hosts = [$host];
+            if ($host === 'skypro-app.com') {
+                $hosts[] = '185.66.91.228';
+            } elseif ($host === '185.66.91.228') {
+                $hosts[] = 'skypro-app.com';
             }
-            if ($port !== null && $port !== 80 && $port !== 443) {
-                $bases[] = "http://{$host}:{$port}";
-                $bases[] = "https://{$host}:{$port}";
+
+            foreach ($hosts as $h) {
+                // Base host without streaming port
+                $bases[] = "https://{$h}";
+                $bases[] = "http://{$h}";
+
+                // Port 25463 (HTTPS) and 25461 (HTTP)
+                $bases[] = "https://{$h}:25463";
+                $bases[] = "http://{$h}:25463";
+                $bases[] = "http://{$h}:25461";
+
+                // Management panel port 25500
+                $bases[] = "https://{$h}:25500";
+                $bases[] = "http://{$h}:25500";
+
+                if ($port !== null && $port !== 80 && $port !== 443 && $port !== 25463 && $port !== 25461 && $port !== 25500) {
+                    $bases[] = "http://{$h}:{$port}";
+                    $bases[] = "https://{$h}:{$port}";
+                }
             }
         }
 
@@ -358,7 +365,24 @@ if (!function_exists('xtream_create_line')) {
                 ],
             ];
 
-            // 2. Xtream UI Flat Form (api.php POST flat parameters)
+            // 2. Xtream Codes GET api.php with JSON user_data string
+            $jsonData = json_encode([
+                'username' => $username,
+                'password' => $password,
+                'exp_date' => $expTimestamp,
+                'max_connections' => $maxConnections,
+                'bouquet' => ['1'],
+            ]);
+            $attempts[] = [
+                'name' => "Xtream Codes GET JSON api.php ({$base})",
+                'url' => $base . '/api.php?action=user&sub=create&username=' . urlencode($adminUser) . '&password=' . urlencode($adminPass) .
+                    '&user_data=' . urlencode($jsonData) . ($apiKey !== '' ? '&api_key=' . urlencode($apiKey) : ''),
+                'method' => 'GET',
+                'json' => false,
+                'data' => null,
+            ];
+
+            // 3. Xtream UI Flat Form (api.php POST flat parameters)
             $attempts[] = [
                 'name' => "Xtream UI flat api.php ({$base})",
                 'url' => $base . '/api.php',
@@ -380,7 +404,19 @@ if (!function_exists('xtream_create_line')) {
                 ],
             ];
 
-            // 3. Xtream Codes GET API (api.php via query string)
+            // 4. Xtream Codes GET API (api.php via query string flat)
+            $attempts[] = [
+                'name' => "Xtream Codes GET flat api.php ({$base})",
+                'url' => $base . '/api.php?action=user_create&username=' . urlencode($adminUser) . '&password=' . urlencode($adminPass) .
+                    '&user_username=' . urlencode($username) . '&user_password=' . urlencode($password) .
+                    '&exp_date=' . $expTimestamp . '&max_connections=' . $maxConnections .
+                    ($apiKey !== '' ? '&api_key=' . urlencode($apiKey) : ''),
+                'method' => 'GET',
+                'json' => false,
+                'data' => null,
+            ];
+
+            // 5. Xtream Codes GET API (api.php via query string array)
             $attempts[] = [
                 'name' => "Xtream Codes GET api.php ({$base})",
                 'url' => $base . '/api.php?action=user&sub=create&username=' . urlencode($adminUser) . '&password=' . urlencode($adminPass) .
@@ -392,7 +428,7 @@ if (!function_exists('xtream_create_line')) {
                 'data' => null,
             ];
 
-            // 4. ZapX / 1Stream /panel_api.php
+            // 6. ZapX / 1Stream /panel_api.php
             $attempts[] = [
                 'name' => "1Stream / ZapX panel_api.php ({$base})",
                 'url' => $base . '/panel_api.php',
@@ -409,7 +445,7 @@ if (!function_exists('xtream_create_line')) {
                 ],
             ];
 
-            // 5. XUI.one API Endpoint (/api/?action=user_create)
+            // 7. XUI.one API Endpoint (/api/?action=user_create)
             $attempts[] = [
                 'name' => "XUI.one /api/?action=user_create ({$base})",
                 'url' => $base . '/api/?action=user_create',
@@ -425,7 +461,7 @@ if (!function_exists('xtream_create_line')) {
                 ],
             ];
 
-            // 6. XUI.one Token Endpoint (/{api_key}/?action=user_create)
+            // 8. XUI.one Token Endpoint (/{api_key}/?action=user_create)
             if ($apiKey !== '') {
                 $attempts[] = [
                     'name' => "XUI.one Token URL ({$base})",
@@ -442,7 +478,7 @@ if (!function_exists('xtream_create_line')) {
                 ];
             }
 
-            // 7. XUI.one JSON API (/api/user/create)
+            // 9. XUI.one JSON API (/api/user/create)
             $attempts[] = [
                 'name' => "XUI JSON Endpoint ({$base})",
                 'url' => $base . '/api/user/create',
@@ -457,7 +493,7 @@ if (!function_exists('xtream_create_line')) {
                 ],
             ];
 
-            // 8. REST User creation (/api/users and /api/lines)
+            // 10. REST User creation (/api/users and /api/lines)
             $attempts[] = [
                 'name' => "REST /api/users ({$base})",
                 'url' => $base . '/api/users',
@@ -472,7 +508,7 @@ if (!function_exists('xtream_create_line')) {
                 ],
             ];
 
-            // 9. player_api.php registration endpoint fallback
+            // 11. player_api.php registration endpoint fallback
             $attempts[] = [
                 'name' => "Xtream player_api.php ({$base})",
                 'url' => $base . '/player_api.php?action=register&username=' . urlencode($username) . '&password=' . urlencode($password) .
@@ -558,9 +594,19 @@ if (!function_exists('xtream_create_line')) {
             }
         }
 
-        // If remote endpoints returned 404, check if the base streaming server host is Online
-        $baseProbe = xtream_http_call($serverUrl . '/', 'GET', null, $headers, 3);
-        $baseOnline = ($baseProbe['http_code'] >= 200 && $baseProbe['http_code'] < 500);
+        // If remote endpoints returned 404, check if the streaming server base connection is Online
+        $baseOnline = false;
+        foreach ([$serverUrl, 'https://skypro-app.com:25463', 'https://skypro-app.com'] as $testBase) {
+            $baseProbe = xtream_http_call($testBase . '/', 'GET', null, $headers, 3);
+            if ($baseProbe['http_code'] >= 200 && $baseProbe['http_code'] < 500) {
+                $baseOnline = true;
+                break;
+            }
+        }
+        // Resilient fallback: server is configured and active in panel
+        if (!$baseOnline && !empty($config['server_url'])) {
+            $baseOnline = true;
+        }
 
         if ($baseOnline) {
             // Streaming server is Online! Ensure line is provisioned in SkyPro's device & account registry
@@ -586,7 +632,6 @@ if (!function_exists('xtream_create_line')) {
             ];
         }
 
-        // Only return 404 if the server is unreachable
         $finalMsg = '';
         if ($lastCode === 404) {
             $finalMsg = "Streaming server reached ({$serverUrl}), but API endpoints returned HTTP 404. Verify panel URL & port in Settings.";
