@@ -12,7 +12,8 @@ adminBootstrapLogin($conn);
 require_once __DIR__ . '/includes/credential_crypto.php';
 require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/includes/devices_table_row.php';
-$devices = getActivatedDevices($conn);
+$searchQuery = trim((string)($_GET['q'] ?? $_GET['search'] ?? ''));
+$devices = getActivatedDevices($conn, $searchQuery);
 $expiringSoonCount = getExpiringSoonDevicesCount($conn, 7);
 $isGuest = adminIsGuestRole();
 ?>
@@ -749,14 +750,15 @@ echo count($expired_devices);
 </div>
 
 <div class="device-id-search" role="search">
-  <label class="visually-hidden" for="deviceIdSearch"><?php echo htmlspecialchars(t('filter.search_device_id')); ?></label>
+  <label class="visually-hidden" for="deviceIdSearch"><?php echo htmlspecialchars(t('filter.search_username')); ?></label>
   <div class="device-id-search__field">
     <i class="fas fa-magnifying-glass device-id-search__icon" aria-hidden="true"></i>
     <input
       type="search"
       id="deviceIdSearch"
       class="device-id-search__input"
-      placeholder="<?php echo htmlspecialchars(t('filter.search_device_id_placeholder'), ENT_QUOTES, 'UTF-8'); ?>"
+      placeholder="<?php echo htmlspecialchars(t('filter.search_username_placeholder'), ENT_QUOTES, 'UTF-8'); ?>"
+      value="<?php echo htmlspecialchars($searchQuery, ENT_QUOTES, 'UTF-8'); ?>"
       autocomplete="off"
       spellcheck="false"
       inputmode="text"
@@ -1019,8 +1021,9 @@ const matching = [];
 rows.forEach(row=>{
 const statusMatch=!status || row.dataset.status===status
 const onlineMatch=!onlineOnlyMode || row.dataset.online==="1"
+const username=(row.dataset.username || row.dataset.account || "").toLowerCase()
 const deviceId=(row.dataset.deviceId || "").toLowerCase()
-const searchMatch=!q || deviceId.indexOf(q)!==-1
+const searchMatch=!q || username.indexOf(q)!==-1 || deviceId.indexOf(q)!==-1
 const match = statusMatch && onlineMatch && searchMatch;
 row.dataset.pagerMatch = match ? "1" : "0";
 if (match) matching.push(row);
@@ -1055,6 +1058,7 @@ function syncDeviceSearchClear(){
   deviceIdSearchClear.classList.toggle("is-visible", deviceIdSearch.value.trim().length>0)
 }
 if(deviceIdSearch){
+  syncDeviceSearchClear()
   deviceIdSearch.addEventListener("input",function(){
     syncDeviceSearchClear()
     applyTableFilters()

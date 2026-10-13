@@ -103,9 +103,28 @@ function getExpiringSoonDevices(PDO $conn, int $withinDays = 7, int $limit = 50)
     }
 }
 
-// جلب قائمة الأجهزة المفعلة (مع مزامنة حالة الانتهاء تلقائياً)
-function getActivatedDevices($conn) {
+// جلب قائمة الأجهزة المفعلة (مع مزامنة حالة الانتهاء تلقائياً ودعم البحث باسم المستخدم)
+function getActivatedDevices($conn, $search = '') {
     syncExpiredStatus($conn);
+    $search = trim((string)$search);
+    if ($search !== '') {
+        $like = '%' . $search . '%';
+        $stmt = $conn->prepare("SELECT a.*,
+            (SELECT COUNT(*) FROM playlist_code_devices d WHERE d.device_id = a.device_id) AS code_usage_count
+            FROM activated_devices a
+            WHERE (a.status IS NULL OR a.status <> 'deleted')
+              AND (
+                  a.account_display_name LIKE ?
+                  OR a.manual_login_username LIKE ?
+                  OR a.account_key LIKE ?
+                  OR a.device_name LIKE ?
+                  OR a.device_id LIKE ?
+              )
+            ORDER BY a.activation_date DESC");
+        $stmt->execute([$like, $like, $like, $like, $like]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     // نضيف عدد استخدام أكواد القوائم لكل جهاز (لاختيار مصدر الدخول: Username/Password أو Code).
     // الأجهزة المحذوفة من اللوحة (status=deleted) تبقى في القاعدة لإعادة التفعيل لاحقاً ولا تُعرض.
     $stmt = $conn->query("SELECT a.*,

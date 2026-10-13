@@ -29,13 +29,11 @@ function admin_render_device_dashboard_row(array $device, bool $isGuest, int $li
     $status = (string) ($device['status'] ?? '');
     $devicePk = (int) ($device['id'] ?? 0);
     $deviceName = htmlspecialchars((string) ($device['device_name'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $accountLabel = htmlspecialchars(
-        account_key_display_label(isset($device['account_key']) ? (string) $device['account_key'] : ''),
-        ENT_QUOTES,
-        'UTF-8'
-    );
     $ak = isset($device['account_key']) ? trim((string) $device['account_key']) : '';
     $displayName = isset($device['account_display_name']) ? trim((string) $device['account_display_name']) : '';
+    $manualUser = isset($device['manual_login_username']) ? trim((string) $device['manual_login_username']) : '';
+    $rawUsername = $displayName !== '' ? $displayName : ($manualUser !== '' ? $manualUser : account_key_display_label($ak));
+    $accountLabel = htmlspecialchars($rawUsername, ENT_QUOTES, 'UTF-8');
     $serverHost = isset($device['code_server_host']) ? trim((string) $device['code_server_host']) : '';
     $codeUsageCount = (int) ($device['code_usage_count'] ?? 0);
     $syncSig = admin_device_dashboard_sync_sig($device);
@@ -47,6 +45,7 @@ function admin_render_device_dashboard_row(array $device, bool $isGuest, int $li
     data-status="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>"
     data-device-id="<?php echo $deviceIdAttr; ?>"
     data-account="<?php echo $accountLabel; ?>"
+    data-username="<?php echo htmlspecialchars($rawUsername, ENT_QUOTES, 'UTF-8'); ?>"
     data-online="0"
     data-pager-match="1">
 
@@ -66,11 +65,10 @@ function admin_render_device_dashboard_row(array $device, bool $isGuest, int $li
 
 <td>
 <?php
-if ($ak !== '') {
-    $userLabel = $displayName !== '' ? $displayName : account_key_display_label($ak);
-    $display = htmlspecialchars($userLabel, ENT_QUOTES, 'UTF-8');
+if ($rawUsername !== '') {
+    $display = htmlspecialchars($rawUsername, ENT_QUOTES, 'UTF-8');
     $titleSafe = $isGuest
-        ? $userLabel
+        ? $rawUsername
         : account_key_tooltip_safe($ak, $serverHost);
     echo '<span class="badge" style="background:#1e40af;font-size:.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;display:inline-block;white-space:nowrap;" title="' . htmlspecialchars($titleSafe, ENT_QUOTES, 'UTF-8') . '">' . $display . '</span>';
     if (!$isGuest && $serverHost !== '') {
