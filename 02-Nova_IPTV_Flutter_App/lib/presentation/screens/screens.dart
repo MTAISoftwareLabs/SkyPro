@@ -91,6 +91,7 @@ import 'package:mehdi_iptv/services/app_update_service.dart';
 import 'package:mehdi_iptv/services/presence_heartbeat_service.dart';
 import 'package:mehdi_iptv/services/push_notification_service.dart';
 import 'package:mehdi_iptv/services/seller_license_service.dart';
+import 'package:mehdi_iptv/core/config.dart';
 import 'content_detail_helpers.dart';
 
 part 'live/live_categories.dart';

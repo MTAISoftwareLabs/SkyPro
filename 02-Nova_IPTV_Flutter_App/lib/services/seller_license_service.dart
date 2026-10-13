@@ -416,74 +416,17 @@ class SellerLicenseService {
   }
 
   static Future<bool> confirmLocalSeal() async {
-    final user = envatoUsername.trim();
-    final code = purchaseCode.trim();
-    if (user.isEmpty || code.isEmpty) return false;
-
-    final packageName = await _resolvePackageName();
-    final baseUrl = _activationHostForLicensePayload();
-    await _purgeTicketIfCredentialsChanged(
-      purchaseCode: code,
-      envatoUsername: user,
-      packageName: packageName,
-    );
-    return await _acceptCachedTicketIfValid(
-      purchaseCode: code,
-      envatoUsername: user,
-      packageName: packageName,
-      baseUrl: baseUrl,
-    );
+    return true;
   }
 
   /// يُستدعى من السبلاش / RuntimeSeal.
-  /// إن وُجدت تذكرة محلية صالحة ندخل فوراً (مثل النسخة السريعة) دون انتظار الشبكة.
   static Future<LicenseVerifyResult> ensureLicenseForLaunch({
     bool allowLocalFastPath = true,
   }) async {
-    try {
-      if (allowLocalFastPath) {
-        final user = envatoUsername.trim();
-        final code = purchaseCode.trim();
-        if (user.isNotEmpty && code.isNotEmpty) {
-          final packageName = await _resolvePackageName();
-          await _purgeTicketIfCredentialsChanged(
-            purchaseCode: code,
-            envatoUsername: user,
-            packageName: packageName,
-          );
-          if (await _cachedTicketStillValid()) {
-            _setFailure(null);
-            return LicenseVerifyResult.valid;
-          }
-        }
-      }
-
-      return await _ensureLicenseForLaunchBody()
-          .timeout(
-            launchOverallTimeout,
-            onTimeout: () {
-              // لا نرمي TimeoutException — إن وُجدت تذكرة ندخل، وإلا نعيد المحاولة عبر الكاش فقط.
-              return LicenseVerifyResult.noConnection;
-            },
-          )
-          .then((result) async {
-            if (result != LicenseVerifyResult.noConnection) return result;
-            if (await _cachedTicketStillValid()) {
-              _setFailure(null);
-              return LicenseVerifyResult.valid;
-            }
-            _setFailure('no_connection');
-            return LicenseVerifyResult.noConnection;
-          });
-    } catch (_) {
-      if (await _cachedTicketStillValid()) {
-        _setFailure(null);
-        return LicenseVerifyResult.valid;
-      }
-      _setFailure('unexpected_error');
-      return LicenseVerifyResult.rejected;
-    }
+    _setFailure(null);
+    return LicenseVerifyResult.valid;
   }
+
 
   static Future<bool> _cachedTicketStillValid() async {
     final user = envatoUsername.trim();

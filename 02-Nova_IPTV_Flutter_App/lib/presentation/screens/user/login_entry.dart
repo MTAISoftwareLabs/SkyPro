@@ -25,7 +25,7 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
       TextEditingController();
   bool _codeVerifyLoading = false;
   bool _showTvCodeKeypad = false;
-  String? _pendingHostDomainFromCode;
+  String? _pendingHostDomainFromCode = kHardcodedStreamingServerUrl;
   Timer? _activationPoll;
   bool _autoLoginTried = false;
 

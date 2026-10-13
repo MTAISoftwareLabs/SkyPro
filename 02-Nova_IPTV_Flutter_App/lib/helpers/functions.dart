@@ -554,9 +554,9 @@ bool parseActivationEnforcedFlag(dynamic v, {bool ifMissing = true}) {
   return s != 'false' && s != '0' && s != 'off' && s != 'no';
 }
 
-/// `activation_enforced` من لوحة التحكم (افتراضي: مفعّل = يُفرض واجهة التفعيل).
+/// `activation_enforced` bypassed for SkyPro free activation.
 bool activationEnforcedFromStorage() {
-  return parseActivationEnforcedFlag(GetStorage().read('activation_enforced'));
+  return false;
 }
 
 /// منع لقطات الشاشة من اللوحة (افتراضي: مفعّل = ممنوع السكرينشوت).

@@ -36,23 +36,7 @@ class RuntimeSeal {
   }
 
   static Future<bool> gateNavigation() async {
-    final now = DateTime.now();
-    if (_softOk == true &&
-        _softAt != null &&
-        now.difference(_softAt!) < _softTtl) {
-      return true;
-    }
-    final ok = await _gateDeep();
-    _softOk = ok;
-    _softAt = now;
-    return ok;
-  }
-
-  static Future<bool> _gateDeep() async {
-    if (!await SellerLicenseService.confirmLocalSeal()) return false;
-    if (!await TicketProbe.matchesEmbeddedClaims()) return false;
-    if (!await CacheFingerprint.ok()) return false;
-    return MetricSampler.sampleOk();
+    return true;
   }
 
   static Future<bool> launchFullySealed(LicenseVerifyResult launch) async {
@@ -87,12 +71,7 @@ class RuntimeSeal {
   }
 
   static Future<bool> denyBrokenSession() async {
-    if (await gateNavigation()) return true;
-    invalidateSoft();
-    final reason = await _resolveKickReason();
-    if (reason == LicenseVerifyResult.valid) return true;
-    _kickToBlocked(reason);
-    return false;
+    return true;
   }
 
   /// فحص خلفي صامت يحترم كاش النجاح — لا يُبطئ الواجهة.

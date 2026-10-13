@@ -1589,16 +1589,11 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                       },
                       builder: (context, authState) {
                         final loadingAuth = authState is AuthLoading;
-                        // مثل الإصدار القديم: أي كود host-only يفعّل وضع اليوزر/الباس
-                        // بغض النظر عن إعداد إظهار زر الدخول باليوزر من اللوحة.
-                        final showManualCreds =
-                            _pendingHostDomainFromCode != null;
-                        final allowUsernameLogin = showUsernameLogin;
-                        final tvKeypadMode =
-                            isTvDevice && _showTvCodeKeypad && !showManualCreds;
-                        final hPad = isTvDevice ? 36.0 : 20.0;
-                        final showMethodsGrid =
-                            !showManualCreds && !tvKeypadMode;
+                        // SkyPro clean login: always show username & password, hide M3U/QR/Codes
+                        const showManualCreds = true;
+                        final allowUsernameLogin = true;
+                        const tvKeypadMode = false;
+                        const showMethodsGrid = false;
                         final screenW = MediaQuery.sizeOf(context).width;
                         final cardMaxWidth = showMethodsGrid
                             ? (screenW - hPad * 2).clamp(720.0, 1400.0)

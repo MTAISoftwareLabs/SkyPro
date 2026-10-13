@@ -369,10 +369,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     );
 
     final Widget child;
-    if (!isTv(context)) {
+    final isWideOrTv = isTv(context) || MediaQuery.sizeOf(context).width >= 600;
+    if (!isWideOrTv) {
       child = homeBody;
     } else {
-      // شلّ Smart TV: شريط علوي ثابت + تبويبات بدون شكل هاتف.
+      // SkyPro IBO Player 4.3 layout: elegant vertical side-navigation bar
       child = PopScope(
         canPop: false,
         onPopInvokedWithResult: (bool didPop, dynamic result) {

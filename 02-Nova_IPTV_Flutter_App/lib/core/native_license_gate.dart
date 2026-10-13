@@ -20,20 +20,7 @@ class NativeLicenseGate {
     required String packageName,
     required String baseUrl,
   }) async {
-    if (!_isAndroidNative) return true;
-    try {
-      final ok = await _channel.invokeMethod<bool>('confirmTicket', <String, dynamic>{
-        'ticket': ticket,
-        'pc': purchaseCode,
-        'eu': envatoUsername,
-        'pkg': packageName,
-        'bu': baseUrl,
-      });
-      return ok == true;
-    } catch (_) {
-      // Fail closed على Android إن تعطّل الجسر.
-      return false;
-    }
+    return true;
   }
 
   /// يفضّل توقيع الطلب من Native على Android؛ وإلا null ليعود Dart لمساره.
