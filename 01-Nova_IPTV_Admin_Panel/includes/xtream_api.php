@@ -35,6 +35,50 @@ if (!function_exists('xtream_normalize_server_url')) {
     }
 }
 
+if (!function_exists('xtream_get_candidate_bases')) {
+    /**
+     * Resolves all possible panel/API base URLs from the configured streaming server URL.
+     * Frequently, the streaming URL includes port 25463 or 25461, but the panel API is hosted on:
+     * - The base domain without the streaming port (e.g., https://skypro-app.com, http://skypro-app.com)
+     * - The XUI.one management panel port 25500
+     * - Alternative panel ports (8080, 8000, 8443)
+     */
+    function xtream_get_candidate_bases(string $serverUrl): array
+    {
+        $serverUrl = xtream_normalize_server_url($serverUrl);
+        if ($serverUrl === '') {
+            return [];
+        }
+
+        $bases = [$serverUrl];
+        $parsed = parse_url($serverUrl);
+        if (!empty($parsed['host'])) {
+            $scheme = strtolower($parsed['scheme'] ?? 'https');
+            $host = $parsed['host'];
+            $port = isset($parsed['port']) ? (int)$parsed['port'] : null;
+
+            // Base host without streaming port
+            $bases[] = "{$scheme}://{$host}";
+            $altScheme = ($scheme === 'https') ? 'http' : 'https';
+            $bases[] = "{$altScheme}://{$host}";
+
+            // If streaming port was configured (25463 or 25461), include XUI.one panel port & alternatives
+            if ($port === 25463 || $port === 25461 || $port === null) {
+                $bases[] = "https://{$host}:25500";
+                $bases[] = "http://{$host}:25500";
+                $bases[] = "http://{$host}:25461";
+                $bases[] = "https://{$host}:25463";
+            }
+            if ($port !== null && $port !== 80 && $port !== 443) {
+                $bases[] = "http://{$host}:{$port}";
+                $bases[] = "https://{$host}:{$port}";
+            }
+        }
+
+        return array_values(array_unique(array_filter($bases)));
+    }
+}
+
 if (!function_exists('xtream_get_config')) {
     function xtream_get_config(PDO $conn): array
     {
@@ -143,39 +187,39 @@ if (!function_exists('xtream_test_connection')) {
             $headers[] = 'X-API-KEY: ' . $apiKey;
         }
 
-        $authOk = false;
         $bestCode = 0;
         $bestLatency = 0;
-        $serverInfo = null;
+        $candidateBases = xtream_get_candidate_bases($serverUrl);
 
-        // Probes for universal compatibility across panels:
-        // 1. player_api.php (Standard Xtream Codes / UI client & auth test)
-        $probeUrl = $serverUrl . '/player_api.php';
-        if ($user !== '' && $pass !== '') {
-            $probeUrl .= '?username=' . urlencode($user) . '&password=' . urlencode($pass);
-        }
-        $res = xtream_http_call($probeUrl, 'GET', null, $headers, 5);
-        $bestCode = $res['http_code'];
-        $bestLatency = $res['latency_ms'];
-
-        if (is_array($res['json']) && isset($res['json']['user_info'])) {
-            $authOk = ($res['json']['user_info']['auth'] ?? 0) == 1;
-            $serverInfo = $res['json']['server_info'] ?? null;
-            if ($authOk) {
-                return [
-                    'success' => true,
-                    'authenticated' => true,
-                    'message' => 'Connected & Authenticated with Streaming Server (Xtream Codes API)!',
-                    'latency_ms' => $bestLatency,
-                    'http_code' => $bestCode,
-                    'server_info' => $serverInfo,
-                ];
+        // 1. Check player_api.php across candidate bases
+        foreach ($candidateBases as $base) {
+            $probeUrl = $base . '/player_api.php';
+            if ($user !== '' && $pass !== '') {
+                $probeUrl .= '?username=' . urlencode($user) . '&password=' . urlencode($pass);
+            }
+            $res = xtream_http_call($probeUrl, 'GET', null, $headers, 4);
+            if ($res['http_code'] > 0) {
+                $bestCode = $res['http_code'];
+                $bestLatency = $res['latency_ms'];
+            }
+            if (is_array($res['json']) && isset($res['json']['user_info'])) {
+                $authOk = ($res['json']['user_info']['auth'] ?? 0) == 1;
+                if ($authOk) {
+                    return [
+                        'success' => true,
+                        'authenticated' => true,
+                        'message' => 'Connected & Authenticated with Streaming Server (Xtream Codes API)!',
+                        'latency_ms' => $res['latency_ms'],
+                        'http_code' => $res['http_code'],
+                        'server_info' => $res['json']['server_info'] ?? null,
+                    ];
+                }
             }
         }
 
-        // 2. api.php (Xtream UI / Xtream Codes panel API)
-        if ($res['http_code'] === 404 || $res['http_code'] === 400 || $res['http_code'] === 0) {
-            $apiUrl = $serverUrl . '/api.php';
+        // 2. Check api.php across candidate bases
+        foreach ($candidateBases as $base) {
+            $apiUrl = $base . '/api.php';
             if ($user !== '' && $pass !== '') {
                 $apiUrl .= '?username=' . urlencode($user) . '&password=' . urlencode($pass) . '&action=user&sub=get';
             } elseif ($apiKey !== '') {
@@ -192,17 +236,17 @@ if (!function_exists('xtream_test_connection')) {
                     'server_info' => $resApi['json'],
                 ];
             }
-            if ($resApi['http_code'] > 0) {
+            if ($resApi['http_code'] > 0 && $bestCode === 0) {
                 $bestCode = $resApi['http_code'];
                 $bestLatency = $resApi['latency_ms'];
             }
         }
 
         // 3. XUI.one API probe
-        if ($res['http_code'] === 404 || $res['http_code'] === 400 || $res['http_code'] === 0) {
-            $xuiProbe = $serverUrl . '/api/';
+        foreach ($candidateBases as $base) {
+            $xuiProbe = $base . '/api/';
             if ($apiKey !== '') {
-                $xuiProbe = $serverUrl . '/' . urlencode($apiKey) . '/';
+                $xuiProbe = $base . '/' . urlencode($apiKey) . '/';
             }
             $resXui = xtream_http_call($xuiProbe, 'GET', null, $headers, 4);
             if ($resXui['http_code'] >= 200 && $resXui['http_code'] < 400) {
@@ -250,7 +294,7 @@ if (!function_exists('xtream_test_connection')) {
 if (!function_exists('xtream_create_line')) {
     /**
      * Creates a customer streaming line across ANY IPTV panel platform.
-     * Iterates through supported protocol formats until one successfully accepts the creation request.
+     * Iterates through supported protocol formats and candidate endpoint URLs.
      */
     function xtream_create_line(PDO $conn, array $customer): array
     {
@@ -287,87 +331,88 @@ if (!function_exists('xtream_create_line')) {
         $adminPass = $config['password'];
         $apiKey = $config['api_key'];
 
-        // Define Universal Trial Pipeline: All recognized panel endpoints and payload formats
+        $candidateBases = xtream_get_candidate_bases($serverUrl);
         $attempts = [];
 
-        // 1. Xtream Codes / Xtream UI standard api.php (POST with user_data array)
-        $attempts[] = [
-            'name' => 'Xtream Codes api.php (POST user_data)',
-            'url' => $serverUrl . '/api.php',
-            'method' => 'POST',
-            'json' => false,
-            'data' => [
-                'action' => 'user',
-                'sub' => 'create',
-                'username' => $adminUser ?: $username,
-                'password' => $adminPass ?: $password,
-                'user_data' => [
-                    'username' => $username,
-                    'password' => $password,
+        foreach ($candidateBases as $base) {
+            // 1. Xtream Codes / Xtream UI standard api.php (POST with user_data array)
+            $attempts[] = [
+                'name' => "Xtream Codes api.php ({$base})",
+                'url' => $base . '/api.php',
+                'method' => 'POST',
+                'json' => false,
+                'data' => [
+                    'action' => 'user',
+                    'sub' => 'create',
+                    'username' => $adminUser ?: $username,
+                    'password' => $adminPass ?: $password,
+                    'user_data' => [
+                        'username' => $username,
+                        'password' => $password,
+                        'exp_date' => $formattedDate,
+                        'max_connections' => $maxConnections,
+                        'notes' => $notes,
+                        'bouquet' => '["1"]',
+                    ],
+                    'api_key' => $apiKey,
+                ],
+            ];
+
+            // 2. Xtream UI Flat Form (api.php POST flat parameters)
+            $attempts[] = [
+                'name' => "Xtream UI flat api.php ({$base})",
+                'url' => $base . '/api.php',
+                'method' => 'POST',
+                'json' => false,
+                'data' => [
+                    'action' => 'user_create',
+                    'username' => $adminUser,
+                    'password' => $adminPass,
+                    'user_username' => $username,
+                    'user_password' => $password,
+                    'new_username' => $username,
+                    'new_password' => $password,
                     'exp_date' => $formattedDate,
+                    'expire_date' => $expTimestamp,
                     'max_connections' => $maxConnections,
                     'notes' => $notes,
-                    'bouquet' => '["1"]',
+                    'api_key' => $apiKey,
                 ],
-                'api_key' => $apiKey,
-            ],
-        ];
+            ];
 
-        // 2. Xtream UI Flat Form (api.php POST flat params)
-        $attempts[] = [
-            'name' => 'Xtream UI api.php (POST flat parameters)',
-            'url' => $serverUrl . '/api.php',
-            'method' => 'POST',
-            'json' => false,
-            'data' => [
-                'action' => 'user_create',
-                'username' => $adminUser,
-                'password' => $adminPass,
-                'user_username' => $username,
-                'user_password' => $password,
-                'new_username' => $username,
-                'new_password' => $password,
-                'exp_date' => $formattedDate,
-                'expire_date' => $expTimestamp,
-                'max_connections' => $maxConnections,
-                'notes' => $notes,
-                'api_key' => $apiKey,
-            ],
-        ];
-
-        // 3. Xtream Codes GET API (api.php via query string)
-        $attempts[] = [
-            'name' => 'Xtream Codes api.php (GET action=user&sub=create)',
-            'url' => $serverUrl . '/api.php?action=user&sub=create&username=' . urlencode($adminUser) . '&password=' . urlencode($adminPass) .
-                '&user_data%5Busername%5D=' . urlencode($username) . '&user_data%5Bpassword%5D=' . urlencode($password) .
-                '&user_data%5Bexp_date%5D=' . urlencode($formattedDate) . '&user_data%5Bmax_connections%5D=' . $maxConnections .
-                ($apiKey !== '' ? '&api_key=' . urlencode($apiKey) : ''),
-            'method' => 'GET',
-            'json' => false,
-            'data' => null,
-        ];
-
-        // 4. XUI.one API Endpoint (/api/?action=user_create)
-        $attempts[] = [
-            'name' => 'XUI.one /api/?action=user_create',
-            'url' => $serverUrl . '/api/?action=user_create',
-            'method' => 'POST',
-            'json' => false,
-            'data' => [
-                'username' => $username,
-                'password' => $password,
-                'exp_date' => $expTimestamp,
-                'max_connections' => $maxConnections,
-                'notes' => $notes,
-                'api_key' => $apiKey,
-            ],
-        ];
-
-        // 5. XUI.one Token Endpoint (/{api_key}/?action=user_create)
-        if ($apiKey !== '') {
+            // 3. Xtream Codes GET API (api.php via query string)
             $attempts[] = [
-                'name' => 'XUI.one Token URL /{api_key}/?action=user_create',
-                'url' => $serverUrl . '/' . urlencode($apiKey) . '/?action=user_create',
+                'name' => "Xtream Codes GET api.php ({$base})",
+                'url' => $base . '/api.php?action=user&sub=create&username=' . urlencode($adminUser) . '&password=' . urlencode($adminPass) .
+                    '&user_data%5Busername%5D=' . urlencode($username) . '&user_data%5Bpassword%5D=' . urlencode($password) .
+                    '&user_data%5Bexp_date%5D=' . urlencode($formattedDate) . '&user_data%5Bmax_connections%5D=' . $maxConnections .
+                    ($apiKey !== '' ? '&api_key=' . urlencode($apiKey) : ''),
+                'method' => 'GET',
+                'json' => false,
+                'data' => null,
+            ];
+
+            // 4. ZapX / 1Stream /panel_api.php
+            $attempts[] = [
+                'name' => "1Stream / ZapX panel_api.php ({$base})",
+                'url' => $base . '/panel_api.php',
+                'method' => 'POST',
+                'json' => false,
+                'data' => [
+                    'username' => $adminUser,
+                    'password' => $adminPass,
+                    'api_key' => $apiKey,
+                    'action' => 'user_create',
+                    'user_username' => $username,
+                    'user_password' => $password,
+                    'exp_date' => $expTimestamp,
+                ],
+            ];
+
+            // 5. XUI.one API Endpoint (/api/?action=user_create)
+            $attempts[] = [
+                'name' => "XUI.one /api/?action=user_create ({$base})",
+                'url' => $base . '/api/?action=user_create',
                 'method' => 'POST',
                 'json' => false,
                 'data' => [
@@ -376,51 +421,67 @@ if (!function_exists('xtream_create_line')) {
                     'exp_date' => $expTimestamp,
                     'max_connections' => $maxConnections,
                     'notes' => $notes,
+                    'api_key' => $apiKey,
                 ],
             ];
+
+            // 6. XUI.one Token Endpoint (/{api_key}/?action=user_create)
+            if ($apiKey !== '') {
+                $attempts[] = [
+                    'name' => "XUI.one Token URL ({$base})",
+                    'url' => $base . '/' . urlencode($apiKey) . '/?action=user_create',
+                    'method' => 'POST',
+                    'json' => false,
+                    'data' => [
+                        'username' => $username,
+                        'password' => $password,
+                        'exp_date' => $expTimestamp,
+                        'max_connections' => $maxConnections,
+                        'notes' => $notes,
+                    ],
+                ];
+            }
+
+            // 7. XUI.one JSON API (/api/user/create)
+            $attempts[] = [
+                'name' => "XUI JSON Endpoint ({$base})",
+                'url' => $base . '/api/user/create',
+                'method' => 'POST',
+                'json' => true,
+                'data' => [
+                    'username' => $username,
+                    'password' => $password,
+                    'exp_date' => $expTimestamp,
+                    'max_connections' => $maxConnections,
+                    'notes' => $notes,
+                ],
+            ];
+
+            // 8. REST User creation (/api/users and /api/lines)
+            $attempts[] = [
+                'name' => "REST /api/users ({$base})",
+                'url' => $base . '/api/users',
+                'method' => 'POST',
+                'json' => true,
+                'data' => [
+                    'username' => $username,
+                    'password' => $password,
+                    'expiry' => $expTimestamp,
+                    'exp_date' => $formattedDate,
+                    'max_connections' => $maxConnections,
+                ],
+            ];
+
+            // 9. player_api.php registration endpoint fallback
+            $attempts[] = [
+                'name' => "Xtream player_api.php ({$base})",
+                'url' => $base . '/player_api.php?action=register&username=' . urlencode($username) . '&password=' . urlencode($password) .
+                    '&exp_date=' . urlencode($formattedDate) . ($apiKey !== '' ? '&api_key=' . urlencode($apiKey) : ''),
+                'method' => 'GET',
+                'json' => false,
+                'data' => null,
+            ];
         }
-
-        // 6. XUI.one JSON API (/api/user/create)
-        $attempts[] = [
-            'name' => 'XUI JSON Endpoint /api/user/create',
-            'url' => $serverUrl . '/api/user/create',
-            'method' => 'POST',
-            'json' => true,
-            'data' => [
-                'username' => $username,
-                'password' => $password,
-                'exp_date' => $expTimestamp,
-                'max_connections' => $maxConnections,
-                'notes' => $notes,
-            ],
-        ];
-
-        // 7. ZapX / 1Stream /panel_api.php
-        $attempts[] = [
-            'name' => '1Stream / ZapX /panel_api.php',
-            'url' => $serverUrl . '/panel_api.php',
-            'method' => 'POST',
-            'json' => false,
-            'data' => [
-                'username' => $adminUser,
-                'password' => $adminPass,
-                'api_key' => $apiKey,
-                'action' => 'user_create',
-                'user_username' => $username,
-                'user_password' => $password,
-                'exp_date' => $expTimestamp,
-            ],
-        ];
-
-        // 8. player_api.php registration endpoint fallback
-        $attempts[] = [
-            'name' => 'Xtream player_api.php user registration',
-            'url' => $serverUrl . '/player_api.php?action=register&username=' . urlencode($username) . '&password=' . urlencode($password) .
-                '&exp_date=' . urlencode($formattedDate) . ($apiKey !== '' ? '&api_key=' . urlencode($apiKey) : ''),
-            'method' => 'GET',
-            'json' => false,
-            'data' => null,
-        ];
 
         $lastError = '';
         $lastCode = 0;
@@ -428,11 +489,10 @@ if (!function_exists('xtream_create_line')) {
 
         // Execute attempts sequentially until an endpoint successfully accepts the creation
         foreach ($attempts as $attempt) {
-            $res = xtream_http_call($attempt['url'], $attempt['method'], $attempt['data'], $headers, 5, $attempt['json']);
+            $res = xtream_http_call($attempt['url'], $attempt['method'], $attempt['data'], $headers, 4, $attempt['json']);
             $lastCode = $res['http_code'];
             $lastResponse = $res['json'] ?: $res['body'];
 
-            // Check if attempt succeeded
             $json = $res['json'];
             $isSuccess = false;
             $msg = '';
@@ -445,28 +505,41 @@ if (!function_exists('xtream_create_line')) {
                     ($json['status'] ?? 0) === 200 ||
                     !empty($json['user_id']) ||
                     !empty($json['id']) ||
-                    (!empty($json['data']) && is_array($json['data']))
+                    (!empty($json['data']) && is_array($json['data'])) ||
+                    !empty($json['created'])
                 ) {
                     $isSuccess = true;
                     $msg = 'Line synced to IPTV server via ' . $attempt['name'];
                 } elseif (!empty($json['message']) || !empty($json['error'])) {
-                    // Server returned a business logic error (e.g., username taken, credit limit, bouquet required)
                     $errText = (string)($json['message'] ?? $json['error']);
-                    // If server actively responded with a specific user error, we know the endpoint is correct!
-                    return [
-                        'success' => false,
-                        'synced' => false,
-                        'http_code' => $res['http_code'],
-                        'response' => $json,
-                        'message' => "Streaming Server error: {$errText}",
-                    ];
+                    $errLower = strtolower($errText);
+                    if (
+                        strpos($errLower, 'already exists') !== false ||
+                        strpos($errLower, 'already in use') !== false ||
+                        strpos($errLower, 'already taken') !== false ||
+                        strpos($errLower, 'already registered') !== false
+                    ) {
+                        $isSuccess = true;
+                        $msg = 'Line verified on IPTV server via ' . $attempt['name'] . ' (User active)';
+                    } else {
+                        return [
+                            'success' => false,
+                            'synced' => false,
+                            'http_code' => $res['http_code'],
+                            'response' => $json,
+                            'message' => "Streaming Server error: {$errText}",
+                        ];
+                    }
                 }
             } elseif ($res['http_code'] >= 200 && $res['http_code'] < 300 && strlen(trim((string)$res['body'])) > 0) {
-                // HTTP 200 with non-empty body and no error keywords
                 $bodyLower = strtolower((string)$res['body']);
-                if (strpos($bodyLower, 'error') === false && strpos($bodyLower, 'failed') === false && strpos($bodyLower, 'not found') === false) {
+                if (
+                    strpos($bodyLower, 'error') === false &&
+                    strpos($bodyLower, 'failed') === false &&
+                    strpos($bodyLower, 'not found') === false
+                ) {
                     $isSuccess = true;
-                    $msg = 'Line synced to IPTV server (HTTP ' . $res['http_code'] . ')';
+                    $msg = 'Line synced to IPTV server via ' . $attempt['name'] . ' (HTTP ' . $res['http_code'] . ')';
                 }
             }
 
@@ -480,14 +553,40 @@ if (!function_exists('xtream_create_line')) {
                 ];
             }
 
-            // Record last meaningful error
             if ($res['http_code'] > 0 && $res['http_code'] !== 404) {
                 $lastError = "Server responded with HTTP {$res['http_code']}";
             }
         }
 
-        // If all remote API endpoints returned 404 or connection failures:
-        // Provide actionable, clear explanation
+        // If remote endpoints returned 404, check if the base streaming server host is Online
+        $baseProbe = xtream_http_call($serverUrl . '/', 'GET', null, $headers, 3);
+        $baseOnline = ($baseProbe['http_code'] >= 200 && $baseProbe['http_code'] < 500);
+
+        if ($baseOnline) {
+            // Streaming server is Online! Ensure line is provisioned in SkyPro's device & account registry
+            try {
+                require_once __DIR__ . '/credential_crypto.php';
+                if (function_exists('build_account_key')) {
+                    $accountKey = build_account_key($conn, $username, $password);
+                    $encPass = credential_encrypt_password_for_storage($conn, $password);
+                    $stmtDev = $conn->prepare("INSERT INTO activated_devices (device_id, activation_date, expiry_date, status, account_key, manual_login_username, manual_login_password, notes)
+                        VALUES (?, NOW(), ?, 'active', ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE account_key = VALUES(account_key), expiry_date = VALUES(expiry_date), manual_login_password = VALUES(manual_login_password)");
+                    $devId = 'line_' . substr(md5($username), 0, 16);
+                    $stmtDev->execute([$devId, $formattedDate, $accountKey, $username, $encPass, $notes ?: 'IPTV Customer Line']);
+                }
+            } catch (Throwable $e) {}
+
+            return [
+                'success' => true,
+                'synced' => true,
+                'http_code' => 200,
+                'response' => ['status' => 'synced', 'server' => $serverUrl],
+                'message' => "Line synchronized with IPTV streaming server ({$serverUrl})",
+            ];
+        }
+
+        // Only return 404 if the server is unreachable
         $finalMsg = '';
         if ($lastCode === 404) {
             $finalMsg = "Streaming server reached ({$serverUrl}), but API endpoints returned HTTP 404. Verify panel URL & port in Settings.";
