@@ -5,6 +5,7 @@ require_once 'includes/functions.php';
 require_once 'includes/lang.php';
 require_once 'includes/admin_auth.php';
 require_once __DIR__ . '/includes/onesignal_push.php';
+require_once __DIR__ . '/includes/xtream_api.php';
 
 $current_page = 'settings';
 
@@ -194,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $onesignal_enabled = isset($_POST['onesignal_enabled']) ? 1 : 0;
     $onesignal_app_id = trim((string)($_POST['onesignal_app_id'] ?? ''));
     $onesignal_rest_api_key = trim((string)($_POST['onesignal_rest_api_key'] ?? ''));
-    $xtream_api_url = trim((string)($_POST['xtream_api_url'] ?? 'http://skypro-app.com:25463'));
+    $xtream_api_url = xtream_normalize_server_url(trim((string)($_POST['xtream_api_url'] ?? 'https://skypro-app.com:25463')));
     $xtream_api_key = trim((string)($_POST['xtream_api_key'] ?? ''));
     $xtream_api_username = trim((string)($_POST['xtream_api_username'] ?? ''));
     $xtream_api_password = (string)($_POST['xtream_api_password'] ?? '');
@@ -1232,20 +1233,21 @@ $settingsCssVer = is_file($settingsCssPath) ? (string) filemtime($settingsCssPat
                                     <div class="settings-field">
                                         <label for="xtream_api_url" class="form-label"><i class="fas fa-link"></i> <?php echo $lang === 'ar' ? 'عنوان سيرفر البث (IP:Port أو Domain:Port)' : 'IPTV Server URL (with Port)'; ?></label>
                                         <input type="text" class="form-control field-mono" id="xtream_api_url" name="xtream_api_url"
-                                               value="<?php echo htmlspecialchars($settings['xtream_api_url'] ?? 'http://skypro-app.com:25463'); ?>"
-                                               placeholder="http://skypro-app.com:25463">
-                                        <span class="settings-field__help"><?php echo $lang === 'ar' ? 'عنوان السيرفر الكامل مع المنفذ (الافتراضي: http://skypro-app.com:25463)' : 'Full streaming server URL including port (default: http://skypro-app.com:25463)'; ?></span>
+                                               value="<?php echo htmlspecialchars($settings['xtream_api_url'] ?? 'https://skypro-app.com:25463'); ?>"
+                                               placeholder="https://skypro-app.com:25463">
+                                        <span class="settings-field__help"><?php echo $lang === 'ar' ? 'عنوان السيرفر الكامل مع المنفذ (الافتراضي: https://skypro-app.com:25463)' : 'Full streaming server URL including port (default: https://skypro-app.com:25463)'; ?></span>
                                     </div>
 
                                     <div class="settings-field">
                                         <label for="xtream_api_type" class="form-label"><i class="fas fa-layer-group"></i> <?php echo $lang === 'ar' ? 'نوع لوحة السيرفر (Panel Type)' : 'Server Panel Type'; ?></label>
                                         <select class="form-select" id="xtream_api_type" name="xtream_api_type">
+                                            <option value="auto" <?php echo (empty($settings['xtream_api_type']) || ($settings['xtream_api_type'] ?? '') === 'auto') ? 'selected' : ''; ?>><?php echo $lang === 'ar' ? '⭐ كشف تلقائي شامل (Universal - متوافق مع الجميع)' : '⭐ Universal Auto-Detect (Compatible with All)'; ?></option>
                                             <option value="xtream_codes" <?php echo (($settings['xtream_api_type'] ?? '') === 'xtream_codes') ? 'selected' : ''; ?>>Xtream Codes / XC UI</option>
                                             <option value="xui_one" <?php echo (($settings['xtream_api_type'] ?? '') === 'xui_one') ? 'selected' : ''; ?>>XUI One API</option>
                                             <option value="one_stream" <?php echo (($settings['xtream_api_type'] ?? '') === 'one_stream') ? 'selected' : ''; ?>>1Stream / OneStream</option>
                                             <option value="zapx" <?php echo (($settings['xtream_api_type'] ?? '') === 'zapx') ? 'selected' : ''; ?>>ZapX Panel</option>
                                         </select>
-                                        <span class="settings-field__help"><?php echo $lang === 'ar' ? 'نوع نظام إدارة البث المستخدم لتطبيق بروتوكول التزامن' : 'The panel software running on your streaming server.'; ?></span>
+                                        <span class="settings-field__help"><?php echo $lang === 'ar' ? 'اختر "كشف تلقائي شامل" لتجربة جميع بروتوكولات المزامنة تلقائياً وضمان التوافق' : 'Select Universal Auto-Detect to automatically adapt to any IPTV server panel format.'; ?></span>
                                     </div>
 
                                     <div class="settings-field">

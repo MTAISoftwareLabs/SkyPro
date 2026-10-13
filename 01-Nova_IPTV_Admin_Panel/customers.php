@@ -404,9 +404,18 @@ $xtreamCfg = xtream_get_config($conn);
                                     </td>
                                     <td>
                                         <?php if (($c['server_sync_status'] ?? '') === 'synced'): ?>
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fas fa-check"></i> <?php echo $lang === 'ar' ? 'متصل' : 'Synced'; ?></span>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle" title="<?php echo htmlspecialchars($c['server_sync_message'] ?? ''); ?>">
+                                                <i class="fas fa-check-circle me-1"></i> <?php echo $lang === 'ar' ? 'متزامن' : 'Synced'; ?>
+                                            </span>
                                         <?php else: ?>
-                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle" title="<?php echo htmlspecialchars($c['server_sync_message'] ?? ''); ?>"><i class="fas fa-rotate"></i> <?php echo $lang === 'ar' ? 'معلق' : 'Pending'; ?></span>
+                                            <div class="d-inline-flex align-items-center gap-1">
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle" id="sync-badge-<?php echo $c['id']; ?>" title="<?php echo htmlspecialchars($c['server_sync_message'] ?: 'Pending server synchronization'); ?>" style="cursor:help;">
+                                                    <i class="fas fa-clock me-1"></i> <?php echo $lang === 'ar' ? 'معلق' : 'Pending'; ?>
+                                                </span>
+                                                <button type="button" class="btn btn-sm btn-outline-info p-0 px-2 rounded-pill" id="sync-btn-<?php echo $c['id']; ?>" onclick="retrySync(<?php echo $c['id']; ?>)" title="<?php echo $lang === 'ar' ? 'إعادة المزامنة مع السيرفر' : 'Retry Sync to IPTV Server'; ?>">
+                                                    <i class="fas fa-rotate"></i>
+                                                </button>
+                                            </div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end">
@@ -415,6 +424,12 @@ $xtreamCfg = xtream_get_config($conn);
                                                 <?php echo $lang === 'ar' ? 'إجراء' : 'Action'; ?>
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+                                                <li>
+                                                    <button type="button" class="dropdown-item" onclick="retrySync(<?php echo $c['id']; ?>)">
+                                                        <i class="fas fa-arrows-rotate text-info me-2"></i> <?php echo $lang === 'ar' ? 'مزامنة مع سيرفر البث' : 'Sync to Streaming Server'; ?>
+                                                    </button>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
                                                 <li>
                                                     <form method="POST" class="d-inline">
                                                         <?php echo admin_csrf_field(); ?>
@@ -570,6 +585,49 @@ $xtreamCfg = xtream_get_config($conn);
             var link = server + '/get.php?username=' + encodeURIComponent(user) + '&password=' + encodeURIComponent(pass) + '&type=m3u_plus&output=ts';
             navigator.clipboard.writeText(link).then(function() {
                 alert('<?php echo $lang === 'ar' ? 'تم نسخ رابط M3U بنجاح!' : 'M3U link copied to clipboard!'; ?>');
+            });
+        }
+
+        function retrySync(id) {
+            var btn = document.getElementById('sync-btn-' + id);
+            var badge = document.getElementById('sync-badge-' + id);
+            var origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:0.75rem;height:0.75rem;" role="status"></span>';
+            }
+            fetch('api/sync_customer.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ customer_id: id })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+                if (res.synced) {
+                    if (badge) {
+                        badge.className = 'badge bg-success-subtle text-success border border-success-subtle';
+                        badge.innerHTML = '<i class="fas fa-check-circle me-1"></i> <?php echo $lang === 'ar' ? "متزامن" : "Synced"; ?>';
+                        badge.title = res.message || 'Synced successfully';
+                    }
+                    if (btn) btn.style.display = 'none';
+                    alert('<?php echo $lang === 'ar' ? "تمت المزامنة بنجاح مع سيرفر البث!" : "Successfully synced to IPTV streaming server!"; ?>');
+                } else {
+                    if (badge) {
+                        badge.title = res.message || 'Sync failed';
+                    }
+                    alert((res.message || 'Sync failed') + (res.http_code ? ' (HTTP ' + res.http_code + ')' : ''));
+                }
+            })
+            .catch(function(err) {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+                alert('Network error: ' + err.message);
             });
         }
 

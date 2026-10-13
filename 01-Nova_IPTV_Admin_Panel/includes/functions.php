@@ -1209,7 +1209,7 @@ function createDatabaseTable($conn) {
 
         // SkyPro Xtream Codes / IPTV Server API Settings & Customers Table
         try {
-            $conn->exec("ALTER TABLE settings ADD COLUMN xtream_api_url VARCHAR(500) DEFAULT 'http://skypro-app.com:25463'");
+            $conn->exec("ALTER TABLE settings ADD COLUMN xtream_api_url VARCHAR(500) DEFAULT 'https://skypro-app.com:25463'");
         } catch (PDOException $e) {}
         try {
             $conn->exec("ALTER TABLE settings ADD COLUMN xtream_api_key VARCHAR(255) DEFAULT ''");
@@ -1568,7 +1568,7 @@ function ensureSettingsColumns(PDO $conn): void
         "ALTER TABLE settings ADD COLUMN hero_promo_link_url TEXT DEFAULT NULL",
         "ALTER TABLE settings ADD COLUMN hero_banner_count INT NOT NULL DEFAULT 5",
         "ALTER TABLE settings ADD COLUMN hero_content_mode VARCHAR(20) NOT NULL DEFAULT 'auto'",
-        "ALTER TABLE settings ADD COLUMN xtream_api_url VARCHAR(500) DEFAULT 'http://skypro-app.com:25463'",
+        "ALTER TABLE settings ADD COLUMN xtream_api_url VARCHAR(500) DEFAULT 'https://skypro-app.com:25463'",
         "ALTER TABLE settings ADD COLUMN xtream_api_key VARCHAR(256) DEFAULT NULL",
         "ALTER TABLE settings ADD COLUMN xtream_api_username VARCHAR(128) DEFAULT NULL",
         "ALTER TABLE settings ADD COLUMN xtream_api_password VARCHAR(256) DEFAULT NULL",
@@ -1644,7 +1644,7 @@ function getSettings($conn) {
         'hero_promo_link_url' => null,
         'hero_banner_count' => 5,
         'hero_content_mode' => 'auto',
-        'xtream_api_url' => 'http://skypro-app.com:25463',
+        'xtream_api_url' => 'https://skypro-app.com:25463',
         'xtream_api_key' => '',
         'xtream_api_username' => '',
         'xtream_api_password' => '',
