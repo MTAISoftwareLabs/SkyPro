@@ -55,6 +55,10 @@ if (isset($conn) && function_exists('getExpiringSoonDevicesCount')) {
     }
 }
 ?>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+<link rel="shortcut icon" href="favicon.ico">
 <link rel="stylesheet" href="assets/css/admin-responsive.css?v=20260816a">
 <link rel="stylesheet" href="assets/css/admin-confirm.css">
 <?php if (function_exists('adminIsLoggedIn') && adminIsLoggedIn() && function_exists('admin_csrf_meta_tag')): ?>
@@ -463,7 +467,7 @@ body {
 <nav class="navbar navbar-expand-lg navbar-dark admin-navbar sticky-top">
     <div class="container-fluid px-3 px-lg-4 admin-navbar-inner">
         <a class="navbar-brand navbar-brand-pillar d-inline-flex align-items-center gap-2" href="index.php">
-            <i class="fas fa-shield-alt"></i><span class="navbar-brand-text"><?php echo t('app.title'); ?></span>
+            <img src="assets/images/skypro_logo.png" alt="SkyPro" style="height:32px;width:32px;object-fit:contain;border-radius:6px;box-shadow:0 0 10px rgba(0,123,255,0.35);"><span class="navbar-brand-text"><?php echo t('app.title'); ?></span>
         </a>
         <button class="navbar-toggler navbar-toggler-end" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="القائمة">
             <span class="navbar-toggler-icon"></span>

@@ -18,13 +18,17 @@ JS;
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+  <link rel="shortcut icon" href="favicon.ico">
   <link rel="stylesheet" href="assets/css/app.css?v=stv-remain-1">
 </head>
 <body>
   <div class="bg-glow" aria-hidden="true"></div>
   <header class="topbar">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-play"></i></span>
+      <img src="assets/images/skypro_logo.png" alt="SkyPro" style="width:36px;height:36px;object-fit:contain;border-radius:8px;box-shadow:0 0 12px rgba(0,123,255,0.45);">
       <div class="brand-text">
         <strong><?php echo htmlspecialchars($mpAppName); ?></strong>
         <span><?php echo htmlspecialchars(mp_t('brand_sub')); ?></span>
