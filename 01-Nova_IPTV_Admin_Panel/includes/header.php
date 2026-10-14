@@ -22,7 +22,7 @@ if (isset($conn) && function_exists('adminIsLoggedIn') && adminIsLoggedIn()) {
     $adminSecurityKeysMissing = ($apiSec === '' || !$credOk);
     // التحويل الرئيسي يتم مبكراً من adminBootstrapLogin قبل HTML.
     // هنا احتياط فقط إن وُجدت صفحة لم تستدعِه.
-    if ($adminSecurityKeysMissing && ($current_page ?? '') !== 'settings') {
+    if ($adminSecurityKeysMissing && ($current_page ?? '') !== 'settings' && adminIsSuperAdmin()) {
         if (function_exists('adminRedirectIfSecurityKeysMissing')) {
             adminRedirectIfSecurityKeysMissing($conn);
         } elseif (!headers_sent()) {
@@ -481,16 +481,20 @@ body {
                         <i class="fas fa-users"></i><span><?php echo $lang === 'ar' ? 'المشتركون' : 'Customers'; ?></span>
                     </a>
                 </li>
+                <?php if (adminIsSuperAdmin() || adminIsSubAdminRole() || adminCan('users_create')): ?>
                 <li class="nav-item">
                     <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'admin_users' ? 'active' : ''; ?>" href="admin_users.php">
-                        <i class="fas fa-user-shield"></i><span><?php echo $lang === 'ar' ? 'الموظفون والموزعون' : 'Staff & Resellers'; ?></span>
+                        <i class="fas fa-user-shield"></i><span><?php echo adminIsSuperAdmin() ? ($lang === 'ar' ? 'الموظفون والموزعون' : 'Staff & Resellers') : ($lang === 'ar' ? 'حسابات الموزعين' : 'Reseller Accounts'); ?></span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (adminIsSuperAdmin()): ?>
                 <li class="nav-item">
                     <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'settings' ? 'active' : ''; ?>" href="settings.php">
                         <i class="fas fa-cog"></i><span><?php echo t('nav.settings'); ?></span>
                     </a>
                 </li>
+                <?php endif; ?>
                 <?php if (adminCan('notifications_send')): ?>
                 <li class="nav-item">
                     <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'notifications' ? 'active' : ''; ?>" href="notifications.php">

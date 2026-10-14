@@ -13,14 +13,24 @@ if (!adminIsLoggedIn()) {
     exit;
 }
 
+$isSuper = adminIsSuperAdmin();
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true) ?: $_POST;
 
-$url = trim((string)($data['server_url'] ?? ''));
-$key = trim((string)($data['api_key'] ?? ''));
-$user = trim((string)($data['username'] ?? ''));
-$pass = (string)($data['password'] ?? '');
-$type = trim((string)($data['api_type'] ?? 'xtream_codes'));
+$url = '';
+$key = '';
+$user = '';
+$pass = '';
+$type = 'xtream_codes';
+
+// Only Master Owner (super_admin) is permitted to test arbitrary custom server credentials
+if ($isSuper) {
+    $url = trim((string)($data['server_url'] ?? ''));
+    $key = trim((string)($data['api_key'] ?? ''));
+    $user = trim((string)($data['username'] ?? ''));
+    $pass = (string)($data['password'] ?? '');
+    $type = trim((string)($data['api_type'] ?? 'xtream_codes'));
+}
 
 if ($url === '') {
     $cfg = xtream_get_config($conn);
@@ -32,4 +42,11 @@ if ($url === '') {
 }
 
 $result = xtream_test_connection($url, $key, $user, $pass, $type);
+
+// For sub-admins/staff, redact internal server details and sensitive credentials
+if (!$isSuper) {
+    unset($result['server_info']);
+    $result['message'] = $result['success'] ? 'Streaming Server is reachable and online.' : 'Streaming Server connection offline.';
+}
+
 echo json_encode($result, JSON_UNESCAPED_UNICODE);

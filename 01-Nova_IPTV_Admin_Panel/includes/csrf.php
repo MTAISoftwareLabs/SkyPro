@@ -106,6 +106,7 @@ if (!function_exists('admin_find_managed_device')) {
     /**
      * Load a device the logged-in admin is allowed to manage.
      * Soft-deleted rows are out of scope for edit/delete UI actions.
+     * For resellers, isolates devices to those matching customers created by that reseller.
      */
     function admin_find_managed_device(PDO $conn, int $id): ?array
     {
@@ -113,13 +114,31 @@ if (!function_exists('admin_find_managed_device')) {
             return null;
         }
         try {
-            $stmt = $conn->prepare(
-                "SELECT * FROM activated_devices
-                 WHERE id = ?
-                   AND (status IS NULL OR status <> 'deleted')
-                 LIMIT 1"
-            );
-            $stmt->execute([$id]);
+            $isReseller = function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id']);
+            if ($isReseller) {
+                $stmt = $conn->prepare(
+                    "SELECT a.* FROM activated_devices a
+                     INNER JOIN iptv_customers c ON (
+                         c.username = a.manual_login_username 
+                         OR c.username = a.account_display_name 
+                         OR a.account_key LIKE CONCAT(c.username, '#%') 
+                         OR a.account_key = c.username
+                     )
+                     WHERE a.id = ?
+                       AND (a.status IS NULL OR a.status <> 'deleted')
+                       AND c.created_by = ?
+                     LIMIT 1"
+                );
+                $stmt->execute([$id, (int)$_SESSION['admin_user_id']]);
+            } else {
+                $stmt = $conn->prepare(
+                    "SELECT * FROM activated_devices
+                     WHERE id = ?
+                       AND (status IS NULL OR status <> 'deleted')
+                     LIMIT 1"
+                );
+                $stmt->execute([$id]);
+            }
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row ?: null;
         } catch (PDOException $e) {

@@ -36,14 +36,15 @@ try {
     exit();
 }
 
+$canEditDevice = adminCan('devices_edit');
+$canDeleteDevice = adminCan('devices_delete');
+$isGuest = adminIsGuestRole();
+
 $devicePlaylistCodes = [];
 if ($device && !empty($device['device_id']) && !$isGuest) {
     $devicePlaylistCodes = admin_list_device_bound_playlist_codes($conn, (string) $device['device_id']);
 }
 
-$canEditDevice = adminCan('devices_edit');
-$canDeleteDevice = adminCan('devices_delete');
-$isGuest = adminIsGuestRole();
 $displayDeviceId = $isGuest
     ? adminMaskDeviceId((string)($device['device_id'] ?? ''))
     : (string)($device['device_id'] ?? '');

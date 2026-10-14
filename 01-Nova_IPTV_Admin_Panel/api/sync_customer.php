@@ -13,6 +13,12 @@ if (!adminIsLoggedIn()) {
     exit;
 }
 
+if (function_exists('adminIsGuestRole') && adminIsGuestRole()) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Forbidden: View-only guest cannot trigger synchronization.']);
+    exit;
+}
+
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true) ?: $_POST;
 $customerId = (int)($data['customer_id'] ?? 0);
@@ -26,8 +32,16 @@ if ($customerId <= 0) {
 $cust = getCustomerById($conn, $customerId);
 if (!$cust) {
     http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Customer not found']);
+    echo json_encode(['success' => false, 'message' => 'Customer not found or outside your authorized scope']);
     exit;
+}
+
+if (function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+    if ((int)($cust['created_by'] ?? 0) !== (int)$_SESSION['admin_user_id']) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: Customer is outside your assigned reseller scope.']);
+        exit;
+    }
 }
 
 $syncResult = xtream_create_line($conn, [

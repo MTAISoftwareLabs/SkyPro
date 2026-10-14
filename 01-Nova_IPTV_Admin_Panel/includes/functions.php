@@ -69,6 +69,28 @@ function getExpiringSoonDevicesCount(PDO $conn, int $withinDays = 7): int {
     }
     syncExpiredStatus($conn);
     try {
+        $resellerId = null;
+        if (function_exists('adminRoleIsReseller') && function_exists('adminSessionRole') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+            $resellerId = (int)$_SESSION['admin_user_id'];
+        }
+
+        if ($resellerId !== null) {
+            $sql = "SELECT COUNT(DISTINCT a.id) FROM activated_devices a
+                    INNER JOIN iptv_customers c ON (
+                        c.username = a.manual_login_username 
+                        OR c.username = a.account_display_name 
+                        OR a.account_key LIKE CONCAT(c.username, '#%') 
+                        OR a.account_key = c.username
+                    )
+                    WHERE a.status = 'active' 
+                    AND a.expiry_date > NOW() 
+                    AND a.expiry_date <= DATE_ADD(NOW(), INTERVAL ? DAY)
+                    AND c.created_by = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$withinDays, $resellerId]);
+            return (int) $stmt->fetchColumn();
+        }
+
         $sql = "SELECT COUNT(*) FROM activated_devices 
                 WHERE status = 'active' 
                 AND expiry_date > NOW() 
@@ -88,6 +110,31 @@ function getExpiringSoonDevices(PDO $conn, int $withinDays = 7, int $limit = 50)
     }
     syncExpiredStatus($conn);
     try {
+        $resellerId = null;
+        if (function_exists('adminRoleIsReseller') && function_exists('adminSessionRole') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+            $resellerId = (int)$_SESSION['admin_user_id'];
+        }
+
+        if ($resellerId !== null) {
+            $sql = "SELECT DISTINCT a.id, a.device_id, a.device_name, a.expiry_date, a.last_seen_at 
+                    FROM activated_devices a
+                    INNER JOIN iptv_customers c ON (
+                        c.username = a.manual_login_username 
+                        OR c.username = a.account_display_name 
+                        OR a.account_key LIKE CONCAT(c.username, '#%') 
+                        OR a.account_key = c.username
+                    )
+                    WHERE a.status = 'active' 
+                    AND a.expiry_date > NOW() 
+                    AND a.expiry_date <= DATE_ADD(NOW(), INTERVAL ? DAY)
+                    AND c.created_by = ?
+                    ORDER BY a.expiry_date ASC
+                    LIMIT " . (int) $limit;
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([$withinDays, $resellerId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         $sql = "SELECT id, device_id, device_name, expiry_date, last_seen_at 
                 FROM activated_devices 
                 WHERE status = 'active' 
@@ -107,6 +154,53 @@ function getExpiringSoonDevices(PDO $conn, int $withinDays = 7, int $limit = 50)
 function getActivatedDevices($conn, $search = '') {
     syncExpiredStatus($conn);
     $search = trim((string)$search);
+    $resellerId = null;
+    if (function_exists('adminRoleIsReseller') && function_exists('adminSessionRole') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+        $resellerId = (int)$_SESSION['admin_user_id'];
+    }
+
+    if ($resellerId !== null) {
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $stmt = $conn->prepare("SELECT a.*,
+                (SELECT COUNT(*) FROM playlist_code_devices d WHERE d.device_id = a.device_id) AS code_usage_count
+                FROM activated_devices a
+                INNER JOIN iptv_customers c ON (
+                    c.username = a.manual_login_username 
+                    OR c.username = a.account_display_name 
+                    OR a.account_key LIKE CONCAT(c.username, '#%') 
+                    OR a.account_key = c.username
+                )
+                WHERE (a.status IS NULL OR a.status <> 'deleted')
+                  AND c.created_by = ?
+                  AND (
+                      a.account_display_name LIKE ?
+                      OR a.manual_login_username LIKE ?
+                      OR a.account_key LIKE ?
+                      OR a.device_name LIKE ?
+                      OR a.device_id LIKE ?
+                  )
+                ORDER BY a.activation_date DESC");
+            $stmt->execute([$resellerId, $like, $like, $like, $like, $like]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $stmt = $conn->prepare("SELECT a.*,
+            (SELECT COUNT(*) FROM playlist_code_devices d WHERE d.device_id = a.device_id) AS code_usage_count
+            FROM activated_devices a
+            INNER JOIN iptv_customers c ON (
+                c.username = a.manual_login_username 
+                OR c.username = a.account_display_name 
+                OR a.account_key LIKE CONCAT(c.username, '#%') 
+                OR a.account_key = c.username
+            )
+            WHERE (a.status IS NULL OR a.status <> 'deleted')
+              AND c.created_by = ?
+            ORDER BY a.activation_date DESC");
+        $stmt->execute([$resellerId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     if ($search !== '') {
         $like = '%' . $search . '%';
         $stmt = $conn->prepare("SELECT a.*,
@@ -1247,6 +1341,11 @@ function createDatabaseTable($conn) {
         } catch (PDOException $e) {}
 
         try {
+            // تنظيف أي صلاحية إعدادات متبقية لغير المسؤول الأعلى لضمان الحظر التام
+            $conn->exec("DELETE FROM admin_role_permissions WHERE permission_key = 'settings' AND role != 'super_admin'");
+        } catch (PDOException $e) {}
+
+        try {
             $conn->exec("CREATE TABLE IF NOT EXISTS iptv_customers (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(255) NOT NULL UNIQUE,
@@ -1464,6 +1563,7 @@ function createDatabaseTable($conn) {
             password_hash VARCHAR(255) NOT NULL,
             role VARCHAR(32) NOT NULL DEFAULT 'viewer',
             is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_by INT NULL DEFAULT NULL,
             last_login_at DATETIME NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1471,6 +1571,10 @@ function createDatabaseTable($conn) {
             UNIQUE KEY uq_admin_email (email)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
         $conn->exec($sql);
+
+        try {
+            $conn->exec("ALTER TABLE admin_users ADD COLUMN created_by INT NULL DEFAULT NULL AFTER is_active");
+        } catch (Throwable $e) {}
 
         // Do NOT seed a default admin password. Buyers create the first
         // super admin via setup.php on first visit (see adminNeedsInitialSetup).
@@ -1483,6 +1587,12 @@ function createDatabaseTable($conn) {
             KEY idx_role_perm_role (role)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
         $conn->exec($sql);
+
+        // Ensure sub-admin has users_create permission enabled
+        try {
+            $insPerm = $conn->prepare("INSERT IGNORE INTO admin_role_permissions (role, permission_key) VALUES ('admin', 'users_create')");
+            $insPerm->execute();
+        } catch (Throwable $e) {}
 
         require_once __DIR__ . '/admin_auth.php';
         if (function_exists('adminSeedRolePermissionsIfEmpty')) {
@@ -2351,10 +2461,15 @@ function syncCustomersWithActivatedDevices(PDO $conn): void
     } catch (Throwable $e) {}
 }
 
-function getCustomers(PDO $conn, string $filter = '', string $search = ''): array
+function getCustomers(PDO $conn, string $filter = '', string $search = '', ?int $resellerId = null): array
 {
     syncExpiredCustomers($conn);
     syncCustomersWithActivatedDevices($conn);
+
+    if ($resellerId === null && function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+        $resellerId = (int)$_SESSION['admin_user_id'];
+    }
+
     try {
         $sql = "SELECT c.*, 
                        u.username AS creator_username,
@@ -2400,6 +2515,11 @@ function getCustomers(PDO $conn, string $filter = '', string $search = ''): arra
                 WHERE 1=1";
 
         $params = [];
+        if ($resellerId !== null && $resellerId > 0) {
+            $sql .= " AND c.created_by = ?";
+            $params[] = $resellerId;
+        }
+
         if ($filter === 'active') {
             $sql .= " AND c.status = 'active'";
         } elseif ($filter === 'expired') {
@@ -2427,6 +2547,11 @@ function getCustomers(PDO $conn, string $filter = '', string $search = ''): arra
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (Throwable $e) {
         try {
+            if ($resellerId !== null && $resellerId > 0) {
+                $stmt = $conn->prepare("SELECT * FROM iptv_customers WHERE created_by = ? ORDER BY id DESC");
+                $stmt->execute([$resellerId]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            }
             $stmt = $conn->query("SELECT * FROM iptv_customers ORDER BY id DESC");
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (Throwable $e2) {
@@ -2435,12 +2560,21 @@ function getCustomers(PDO $conn, string $filter = '', string $search = ''): arra
     }
 }
 
-function getCustomerById(PDO $conn, int $id): ?array
+function getCustomerById(PDO $conn, int $id, bool $enforceResellerScope = true): ?array
 {
     try {
         $stmt = $conn->prepare("SELECT * FROM iptv_customers WHERE id = ? LIMIT 1");
         $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        if (!$row) {
+            return null;
+        }
+        if ($enforceResellerScope && function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+            if ((int)($row['created_by'] ?? 0) !== (int)$_SESSION['admin_user_id']) {
+                return null;
+            }
+        }
+        return $row;
     } catch (Throwable $e) {
         return null;
     }
@@ -2448,6 +2582,10 @@ function getCustomerById(PDO $conn, int $id): ?array
 
 function addCustomer(PDO $conn, array $data): array
 {
+    if (function_exists('adminIsGuestRole') && adminIsGuestRole()) {
+        return ['success' => false, 'message' => 'Read-only access: Viewers cannot create customers.'];
+    }
+
     $username = trim((string)($data['username'] ?? ''));
     $password = (string)($data['password'] ?? '');
     $customerName = trim((string)($data['customer_name'] ?? ''));
@@ -2500,8 +2638,74 @@ function addCustomer(PDO $conn, array $data): array
     }
 }
 
+function updateCustomer(PDO $conn, int $id, array $data): array
+{
+    if (function_exists('adminIsGuestRole') && adminIsGuestRole()) {
+        return ['success' => false, 'message' => 'Read-only access: Viewers cannot edit customers.'];
+    }
+
+    try {
+        $c = getCustomerById($conn, $id);
+        if (!$c) {
+            return ['success' => false, 'message' => 'Customer not found or outside your authorized scope.'];
+        }
+
+        $customerName = trim((string)($data['customer_name'] ?? $c['customer_name'] ?? ''));
+        $email = trim((string)($data['email'] ?? $c['email'] ?? ''));
+        $phone = trim((string)($data['phone'] ?? $c['phone'] ?? ''));
+        $password = (string)($data['password'] ?? '');
+        $newPass = ($password !== '') ? $password : $c['password'];
+        $maxConnections = max(1, (int)($data['max_connections'] ?? $c['max_connections'] ?? 1));
+        $packageName = trim((string)($data['package_name'] ?? $c['package_name'] ?? 'Standard'));
+        $notes = trim((string)($data['notes'] ?? $c['notes'] ?? ''));
+        $expiryDate = trim((string)($data['expiry_date'] ?? $c['expiry_date'] ?? ''));
+        if ($expiryDate === '') {
+            $expiryDate = $c['expiry_date'];
+        }
+
+        $stmt = $conn->prepare("UPDATE iptv_customers 
+            SET customer_name = ?, email = ?, phone = ?, password = ?, max_connections = ?, package_name = ?, notes = ?, expiry_date = ? 
+            WHERE id = ?");
+        $stmt->execute([
+            $customerName ?: null,
+            $email ?: null,
+            $phone ?: null,
+            $newPass,
+            $maxConnections,
+            $packageName,
+            $notes ?: null,
+            $expiryDate,
+            $id
+        ]);
+
+        // Sync updated credentials/line with streaming server
+        require_once __DIR__ . '/xtream_api.php';
+        $syncResult = xtream_create_line($conn, [
+            'username' => $c['username'],
+            'password' => $newPass,
+            'expiry_date' => $expiryDate,
+            'max_connections' => $maxConnections,
+            'notes' => $customerName ?: $notes,
+        ]);
+
+        $syncStatus = $syncResult['synced'] ? 'synced' : 'pending';
+        $syncMsg = $syncResult['message'] ?? '';
+        $upd = $conn->prepare("UPDATE iptv_customers SET server_sync_status = ?, server_sync_message = ? WHERE id = ?");
+        $upd->execute([$syncStatus, $syncMsg, $id]);
+
+        return [
+            'success' => true,
+            'synced' => (bool)($syncResult['synced'] ?? false),
+            'sync_message' => $syncMsg,
+        ];
+    } catch (Throwable $e) {
+        return ['success' => false, 'message' => 'Database error: ' . $e->getMessage()];
+    }
+}
+
 function extendCustomer(PDO $conn, int $id, int $days): bool
 {
+    if (function_exists('adminIsGuestRole') && adminIsGuestRole()) return false;
     try {
         $c = getCustomerById($conn, $id);
         if (!$c) return false;
@@ -2509,7 +2713,20 @@ function extendCustomer(PDO $conn, int $id, int $days): bool
         $base = ($curExp && $curExp > time()) ? $curExp : time();
         $newExp = date('Y-m-d H:i:s', $base + ($days * 86400));
         $stmt = $conn->prepare("UPDATE iptv_customers SET expiry_date = ?, status = 'active' WHERE id = ?");
-        return $stmt->execute([$newExp, $id]);
+        $res = $stmt->execute([$newExp, $id]);
+
+        // Auto sync updated expiry date with streaming server
+        if ($res) {
+            require_once __DIR__ . '/xtream_api.php';
+            xtream_create_line($conn, [
+                'username' => $c['username'],
+                'password' => $c['password'],
+                'expiry_date' => $newExp,
+                'max_connections' => (int)($c['max_connections'] ?? 1),
+                'notes' => $c['customer_name'] ?: ($c['notes'] ?? ''),
+            ]);
+        }
+        return $res;
     } catch (Throwable $e) {
         return false;
     }
@@ -2517,6 +2734,7 @@ function extendCustomer(PDO $conn, int $id, int $days): bool
 
 function deleteCustomer(PDO $conn, int $id): bool
 {
+    if (function_exists('adminIsGuestRole') && adminIsGuestRole()) return false;
     try {
         $c = getCustomerById($conn, $id);
         if (!$c) return false;
@@ -2541,6 +2759,7 @@ function deleteCustomer(PDO $conn, int $id): bool
 
 function blockCustomer(PDO $conn, int $id): bool
 {
+    if (function_exists('adminIsGuestRole') && adminIsGuestRole()) return false;
     try {
         $c = getCustomerById($conn, $id);
         if (!$c) return false;
@@ -2566,6 +2785,7 @@ function blockCustomer(PDO $conn, int $id): bool
 
 function unblockCustomer(PDO $conn, int $id): bool
 {
+    if (function_exists('adminIsGuestRole') && adminIsGuestRole()) return false;
     try {
         $c = getCustomerById($conn, $id);
         if (!$c) return false;
@@ -2591,6 +2811,7 @@ function unblockCustomer(PDO $conn, int $id): bool
 
 function toggleCustomerStatus(PDO $conn, int $id): bool
 {
+    if (function_exists('adminIsGuestRole') && adminIsGuestRole()) return false;
     $c = getCustomerById($conn, $id);
     if (!$c) return false;
     if ($c['status'] === 'disabled' || $c['status'] === 'blocked') {

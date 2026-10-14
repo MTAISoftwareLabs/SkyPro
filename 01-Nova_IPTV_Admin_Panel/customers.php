@@ -21,6 +21,10 @@ $search = trim((string)($_GET['q'] ?? ''));
 // Handle Actions (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     admin_require_csrf();
+    if ($isGuest) {
+        header('Location: access_denied.php?perm=devices_edit');
+        exit;
+    }
     $action = trim((string)($_POST['action'] ?? ''));
 
     if ($action === 'add') {
@@ -67,27 +71,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = $res['message'];
         }
+    } elseif ($action === 'edit') {
+        $id = (int)($_POST['customer_id'] ?? 0);
+        $customerName = trim((string)($_POST['customer_name'] ?? ''));
+        $email = trim((string)($_POST['email'] ?? ''));
+        $phone = trim((string)($_POST['phone'] ?? ''));
+        $password = (string)($_POST['password'] ?? '');
+        $maxConnections = max(1, (int)($_POST['max_connections'] ?? 1));
+        $packageName = trim((string)($_POST['package_name'] ?? 'Standard'));
+        $notes = trim((string)($_POST['notes'] ?? ''));
+        $expiryDate = trim((string)($_POST['expiry_date'] ?? ''));
+
+        if ($id <= 0) {
+            $error = $lang === 'ar' ? 'معرّف المشترك غير صالح.' : 'Invalid customer ID.';
+        } else {
+            $res = updateCustomer($conn, $id, [
+                'customer_name' => $customerName,
+                'email' => $email,
+                'phone' => $phone,
+                'password' => $password,
+                'max_connections' => $maxConnections,
+                'package_name' => $packageName,
+                'notes' => $notes,
+                'expiry_date' => $expiryDate ? date('Y-m-d H:i:s', strtotime($expiryDate)) : '',
+            ]);
+            if ($res['success']) {
+                $success = $lang === 'ar' ? 'تم تحديث بيانات المشترك ومزامنتها بنجاح!' : 'Customer updated and synced successfully!';
+                if (!empty($res['sync_message'])) {
+                    $success .= ' (' . $res['sync_message'] . ')';
+                }
+            } else {
+                $error = $res['message'];
+            }
+        }
     } elseif ($action === 'extend') {
         $id = (int)($_POST['customer_id'] ?? 0);
         $days = (int)($_POST['days'] ?? 30);
         if ($id > 0 && extendCustomer($conn, $id, $days)) {
             $success = $lang === 'ar' ? "تم تمديد الاشتراك بمقدار $days يوماً بنجاح!" : "Subscription extended by $days days successfully!";
         } else {
-            $error = $lang === 'ar' ? 'فشل التمديد.' : 'Failed to extend subscription.';
+            $error = $lang === 'ar' ? 'فشل التمديد أو المشترك خارج نطاق حسابك.' : 'Failed to extend subscription or customer outside your scope.';
         }
     } elseif ($action === 'block') {
         $id = (int)($_POST['customer_id'] ?? 0);
         if ($id > 0 && blockCustomer($conn, $id)) {
             $success = $lang === 'ar' ? 'تم حظر المشترك وتوقيف اتصاله بنجاح!' : 'Customer blocked and streaming access revoked!';
         } else {
-            $error = $lang === 'ar' ? 'فشل حظر المشترك.' : 'Failed to block customer.';
+            $error = $lang === 'ar' ? 'فشل حظر المشترك أو المشترك خارج نطاق حسابك.' : 'Failed to block customer or customer outside your scope.';
         }
     } elseif ($action === 'unblock') {
         $id = (int)($_POST['customer_id'] ?? 0);
         if ($id > 0 && unblockCustomer($conn, $id)) {
             $success = $lang === 'ar' ? 'تم إلغاء حظر المشترك وتفعيل الحساب بنجاح!' : 'Customer unblocked and access restored!';
         } else {
-            $error = $lang === 'ar' ? 'فشل إلغاء الحظر.' : 'Failed to unblock customer.';
+            $error = $lang === 'ar' ? 'فشل إلغاء الحظر أو المشترك خارج نطاق حسابك.' : 'Failed to unblock customer or customer outside your scope.';
         }
     } elseif ($action === 'toggle') {
         $id = (int)($_POST['customer_id'] ?? 0);
@@ -101,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($id > 0 && deleteCustomer($conn, $id)) {
             $success = $lang === 'ar' ? 'تم حذف المشترك بنجاح!' : 'Customer deleted successfully!';
         } else {
-            $error = $lang === 'ar' ? 'فشل الحذف.' : 'Failed to delete customer.';
+            $error = $lang === 'ar' ? 'فشل الحذف أو المشترك خارج نطاق حسابك.' : 'Failed to delete customer or customer outside your scope.';
         }
     }
 }
@@ -280,6 +317,24 @@ $xtreamCfg = xtream_get_config($conn);
     <?php require_once 'includes/header.php'; ?>
 
     <div class="container-fluid px-3 px-lg-4 mt-4">
+        <?php if (adminRoleIsReseller(adminSessionRole())): ?>
+            <div class="alert alert-info d-flex align-items-center gap-2 mb-3 rounded-4 shadow-sm" style="background:rgba(14,165,233,0.15); border:1px solid rgba(56,189,248,0.3); color:#38bdf8;">
+                <i class="fas fa-shield-halved"></i>
+                <div>
+                    <strong><?php echo $lang === 'ar' ? 'نطاق الموزع المعزول (Reseller Scope)' : 'Isolated Reseller Scope'; ?>:</strong>
+                    <span><?php echo $lang === 'ar' ? 'أنت تدير حالياً المشتركين والخطوط المخصصة لحسابك فقط في بيئة معزولة بالكامل.' : 'You are currently managing your assigned customers only within a completely isolated scope.'; ?></span>
+                </div>
+            </div>
+        <?php elseif (adminIsSubAdminRole()): ?>
+            <div class="alert alert-primary d-flex align-items-center gap-2 mb-3 rounded-4 shadow-sm" style="background:rgba(0,123,255,0.12); border:1px solid rgba(0,123,255,0.3); color:#60a5fa;">
+                <i class="fas fa-user-gear"></i>
+                <div>
+                    <strong><?php echo $lang === 'ar' ? 'صلاحيات الدعم الفني (Technical Staff Scope)' : 'Technical Staff Scope'; ?>:</strong>
+                    <span><?php echo $lang === 'ar' ? 'صلاحيات تقنية لمساعدة العملاء، فحص الاتصال وتعديل البيانات مع مزامنة البث المباشر.' : 'Technical access to support customers, inspect connections, edit profiles and sync with streaming server.'; ?></span>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <?php if ($success): ?>
             <div class="alert alert-success d-flex align-items-center gap-2 mb-3 rounded-4 shadow-sm">
                 <i class="fas fa-circle-check"></i> <?php echo htmlspecialchars($success); ?>
@@ -369,10 +424,12 @@ $xtreamCfg = xtream_get_config($conn);
                     <?php if ($filter): ?><input type="hidden" name="filter" value="<?php echo htmlspecialchars($filter); ?>"><?php endif; ?>
                     <input type="text" name="q" class="form-control form-control-sm" style="min-width:180px;" placeholder="<?php echo $lang === 'ar' ? 'بحث باسم المستخدم...' : 'Search by Username...'; ?>" value="<?php echo htmlspecialchars($search); ?>">
                 </form>
+                <?php if (!$isGuest): ?>
                 <button type="button" class="btn btn-neon d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
                     <i class="fas fa-user-plus"></i>
                     <span><?php echo $lang === 'ar' ? 'إضافة مشترك جديد' : 'Add New Customer'; ?></span>
                 </button>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -421,11 +478,15 @@ $xtreamCfg = xtream_get_config($conn);
                                         <div class="small text-muted"><?php echo htmlspecialchars($c['package_name'] ?? 'Standard'); ?> (<?php echo (int)$c['max_connections']; ?> <?php echo $lang === 'ar' ? 'اتصال' : 'conn'; ?>)</div>
                                     </td>
                                     <td>
-                                        <div class="d-inline-flex align-items-center gap-1 bg-dark px-2 py-1 rounded-2 border border-secondary">
-                                            <span class="font-monospace small pass-peek" id="pass-<?php echo $c['id']; ?>" data-pass="<?php echo htmlspecialchars($c['password']); ?>">••••••••</span>
-                                            <button type="button" class="btn btn-sm btn-link text-info p-0 ms-1" onclick="togglePassPeek(<?php echo $c['id']; ?>)"><i class="fas fa-eye"></i></button>
-                                            <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" onclick="navigator.clipboard.writeText('<?php echo htmlspecialchars($c['password']); ?>')"><i class="fas fa-copy"></i></button>
-                                        </div>
+                                        <?php if ($isGuest): ?>
+                                            <span class="font-monospace small text-muted">••••••••</span>
+                                        <?php else: ?>
+                                            <div class="d-inline-flex align-items-center gap-1 bg-dark px-2 py-1 rounded-2 border border-secondary">
+                                                <span class="font-monospace small pass-peek" id="pass-<?php echo $c['id']; ?>" data-pass="<?php echo htmlspecialchars($c['password']); ?>">••••••••</span>
+                                                <button type="button" class="btn btn-sm btn-link text-info p-0 ms-1" onclick="togglePassPeek(<?php echo $c['id']; ?>)" title="<?php echo $lang === 'ar' ? 'إظهار / إخفاء' : 'Show/Hide'; ?>"><i class="fas fa-eye"></i></button>
+                                                <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" onclick="navigator.clipboard.writeText('<?php echo htmlspecialchars($c['password']); ?>')" title="<?php echo $lang === 'ar' ? 'نسخ' : 'Copy'; ?>"><i class="fas fa-copy"></i></button>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <div class="fw-semibold"><?php echo htmlspecialchars($c['customer_name'] ?: '—'); ?></div>
@@ -491,14 +552,18 @@ $xtreamCfg = xtream_get_config($conn);
                                                 <span class="badge bg-warning-subtle text-warning border border-warning-subtle" id="sync-badge-<?php echo $c['id']; ?>" title="<?php echo htmlspecialchars($c['server_sync_message'] ?: 'Pending server synchronization'); ?>" style="cursor:help;">
                                                     <i class="fas fa-clock me-1"></i> <?php echo $lang === 'ar' ? 'معلق' : 'Pending'; ?>
                                                 </span>
+                                                <?php if (!$isGuest): ?>
                                                 <button type="button" class="btn btn-sm btn-outline-info p-0 px-2 rounded-pill" id="sync-btn-<?php echo $c['id']; ?>" onclick="retrySync(<?php echo $c['id']; ?>)" title="<?php echo $lang === 'ar' ? 'إعادة المزامنة مع السيرفر' : 'Retry Sync to IPTV Server'; ?>">
                                                     <i class="fas fa-rotate"></i>
                                                 </button>
+                                                <?php endif; ?>
                                             </div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
-                                        <?php if (!$isBlocked): ?>
+                                        <?php if ($isGuest): ?>
+                                            <span class="badge bg-secondary-subtle text-secondary"><?php echo $isBlocked ? ($lang === 'ar' ? 'محظور' : 'Blocked') : ($lang === 'ar' ? 'نشط' : 'Active'); ?></span>
+                                        <?php elseif (!$isBlocked): ?>
                                             <form method="POST" class="d-inline" onsubmit="return confirm('<?php echo $lang === 'ar' ? 'هل تريد حظر المشترك وتوقيف اتصاله فوراً؟' : 'Block this customer and terminate connection immediately?'; ?>');">
                                                 <?php echo admin_csrf_field(); ?>
                                                 <input type="hidden" name="action" value="block">
@@ -521,52 +586,71 @@ $xtreamCfg = xtream_get_config($conn);
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end">
-                                        <div class="dropdown d-inline-block">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown">
-                                                <?php echo $lang === 'ar' ? 'إجراء' : 'Action'; ?>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
-                                                <li>
-                                                    <button type="button" class="dropdown-item" onclick="retrySync(<?php echo $c['id']; ?>)">
-                                                        <i class="fas fa-arrows-rotate text-info me-2"></i> <?php echo $lang === 'ar' ? 'مزامنة مع سيرفر البث' : 'Sync to Streaming Server'; ?>
-                                                    </button>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <form method="POST" class="d-inline">
-                                                        <?php echo admin_csrf_field(); ?>
-                                                        <input type="hidden" name="action" value="extend">
-                                                        <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
-                                                        <input type="hidden" name="days" value="30">
-                                                        <button type="submit" class="dropdown-item"><i class="fas fa-calendar-plus text-success me-2"></i> +30 <?php echo $lang === 'ar' ? 'يوم' : 'Days'; ?></button>
-                                                    </form>
-                                                </li>
-                                                <li>
-                                                    <form method="POST" class="d-inline">
-                                                        <?php echo admin_csrf_field(); ?>
-                                                        <input type="hidden" name="action" value="extend">
-                                                        <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
-                                                        <input type="hidden" name="days" value="365">
-                                                        <button type="submit" class="dropdown-item"><i class="fas fa-star text-warning me-2"></i> +1 <?php echo $lang === 'ar' ? 'سنة' : 'Year'; ?></button>
-                                                    </form>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <button type="button" class="dropdown-item" onclick="copyM3u('<?php echo htmlspecialchars($xtreamCfg['server_url']); ?>', '<?php echo htmlspecialchars($c['username']); ?>', '<?php echo htmlspecialchars($c['password']); ?>')">
-                                                        <i class="fas fa-link text-info me-2"></i> <?php echo $lang === 'ar' ? 'نسخ رابط M3U' : 'Copy M3U Link'; ?>
-                                                    </button>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <form method="POST" class="d-inline" onsubmit="return confirm('<?php echo $lang === 'ar' ? 'هل أنت متأكد من حذف هذا المشترك؟' : 'Are you sure you want to delete this customer?'; ?>');">
-                                                        <?php echo admin_csrf_field(); ?>
-                                                        <input type="hidden" name="action" value="delete">
-                                                        <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
-                                                        <button type="submit" class="dropdown-item text-danger"><i class="fas fa-trash-can me-2"></i> <?php echo $lang === 'ar' ? 'حذف' : 'Delete'; ?></button>
-                                                    </form>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <?php if ($isGuest): ?>
+                                            <span class="badge bg-secondary-subtle text-secondary py-2 px-3 rounded-pill"><i class="fas fa-eye me-1"></i><?php echo $lang === 'ar' ? 'عرض فقط' : 'View Only'; ?></span>
+                                        <?php else: ?>
+                                            <div class="dropdown d-inline-block">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown">
+                                                    <?php echo $lang === 'ar' ? 'إجراء' : 'Action'; ?>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+                                                    <li>
+                                                        <button type="button" class="dropdown-item" onclick="openEditCustomerModal(<?php echo htmlspecialchars(json_encode([
+                                                            'id' => (int)$c['id'],
+                                                            'username' => (string)$c['username'],
+                                                            'customer_name' => (string)($c['customer_name'] ?? ''),
+                                                            'email' => (string)($c['email'] ?? ''),
+                                                            'phone' => (string)($c['phone'] ?? ''),
+                                                            'expiry_date' => date('Y-m-d\TH:i', strtotime($c['expiry_date'])),
+                                                            'max_connections' => (int)($c['max_connections'] ?? 1),
+                                                            'package_name' => (string)($c['package_name'] ?? 'Standard'),
+                                                            'notes' => (string)($c['notes'] ?? ''),
+                                                        ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>)">
+                                                            <i class="fas fa-user-pen text-primary me-2"></i> <?php echo $lang === 'ar' ? 'تعديل بيانات المشترك' : 'Edit Customer Details'; ?>
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button type="button" class="dropdown-item" onclick="retrySync(<?php echo $c['id']; ?>)">
+                                                            <i class="fas fa-arrows-rotate text-info me-2"></i> <?php echo $lang === 'ar' ? 'مزامنة مع سيرفر البث' : 'Sync to Streaming Server'; ?>
+                                                        </button>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <form method="POST" class="d-inline">
+                                                            <?php echo admin_csrf_field(); ?>
+                                                            <input type="hidden" name="action" value="extend">
+                                                            <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
+                                                            <input type="hidden" name="days" value="30">
+                                                            <button type="submit" class="dropdown-item"><i class="fas fa-calendar-plus text-success me-2"></i> +30 <?php echo $lang === 'ar' ? 'يوم' : 'Days'; ?></button>
+                                                        </form>
+                                                    </li>
+                                                    <li>
+                                                        <form method="POST" class="d-inline">
+                                                            <?php echo admin_csrf_field(); ?>
+                                                            <input type="hidden" name="action" value="extend">
+                                                            <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
+                                                            <input type="hidden" name="days" value="365">
+                                                            <button type="submit" class="dropdown-item"><i class="fas fa-star text-warning me-2"></i> +1 <?php echo $lang === 'ar' ? 'سنة' : 'Year'; ?></button>
+                                                        </form>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <button type="button" class="dropdown-item" onclick="copyM3u('<?php echo htmlspecialchars($xtreamCfg['server_url']); ?>', '<?php echo htmlspecialchars($c['username']); ?>', '<?php echo htmlspecialchars($c['password']); ?>')">
+                                                            <i class="fas fa-link text-info me-2"></i> <?php echo $lang === 'ar' ? 'نسخ رابط M3U' : 'Copy M3U Link'; ?>
+                                                        </button>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <form method="POST" class="d-inline" onsubmit="return confirm('<?php echo $lang === 'ar' ? 'هل أنت متأكد من حذف هذا المشترك؟' : 'Are you sure you want to delete this customer?'; ?>');">
+                                                            <?php echo admin_csrf_field(); ?>
+                                                            <input type="hidden" name="action" value="delete">
+                                                            <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
+                                                            <button type="submit" class="dropdown-item text-danger"><i class="fas fa-trash-can me-2"></i> <?php echo $lang === 'ar' ? 'حذف' : 'Delete'; ?></button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -648,8 +732,90 @@ $xtreamCfg = xtream_get_config($conn);
         </div>
     </div>
 
+    <!-- Modal: Edit Customer -->
+    <div class="modal fade" id="editCustomerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST">
+                    <?php echo admin_csrf_field(); ?>
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="customer_id" id="editCustomerId" value="0">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                            <i class="fas fa-user-pen text-primary"></i>
+                            <span><?php echo $lang === 'ar' ? 'تعديل بيانات المشترك' : 'Edit Customer Profile'; ?></span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><?php echo $lang === 'ar' ? 'اسم المستخدم (مرتبط بالخط)' : 'Username (Bound Line)'; ?></label>
+                            <input type="text" id="editCustomerUsername" class="form-control bg-dark-subtle" readonly disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><?php echo $lang === 'ar' ? 'كلمة مرور الخط (اتركه فارغاً دون تغيير)' : 'Line Password (Leave blank to keep current)'; ?></label>
+                            <input type="text" name="password" id="editCustomerPassword" class="form-control" placeholder="<?php echo $lang === 'ar' ? 'أدخل كلمة مرور جديدة للتحديث' : 'Enter new password to update'; ?>" autocomplete="off">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><?php echo $lang === 'ar' ? 'اسم العميل / الملاحظة' : 'Customer Name / Notes'; ?></label>
+                            <input type="text" name="customer_name" id="editCustomerName" class="form-control" placeholder="<?php echo $lang === 'ar' ? 'الاسم الظاهر' : 'Display name'; ?>">
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold"><?php echo $lang === 'ar' ? 'البريد الإلكتروني' : 'Email'; ?></label>
+                                <input type="email" name="email" id="editCustomerEmail" class="form-control" placeholder="name@example.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold"><?php echo $lang === 'ar' ? 'رقم الهاتف' : 'Phone Number'; ?></label>
+                                <input type="text" name="phone" id="editCustomerPhone" class="form-control" placeholder="+123456789">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold"><?php echo $lang === 'ar' ? 'تاريخ الانتهاء' : 'Expiry Date'; ?></label>
+                                <input type="datetime-local" name="expiry_date" id="editCustomerExpiry" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold"><?php echo $lang === 'ar' ? 'عدد الشاشات المسموحة' : 'Max Connections'; ?></label>
+                                <input type="number" name="max_connections" id="editCustomerMaxConn" class="form-control" min="1" max="10" value="1">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold"><?php echo $lang === 'ar' ? 'ملاحظات الدعم الفني' : 'Technical Support Notes'; ?></label>
+                            <textarea name="notes" id="editCustomerNotes" class="form-control" rows="2" placeholder="<?php echo $lang === 'ar' ? 'ملاحظات داخلية للحساب' : 'Internal account notes'; ?>"></textarea>
+                        </div>
+                        <div class="p-3 rounded-3" style="background:rgba(0,123,255,0.08); border:1px solid rgba(0,123,255,0.2);">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-arrows-rotate text-info"></i>
+                                <span class="small fw-semibold"><?php echo $lang === 'ar' ? 'المزامنة المباشرة ستُطبّق على سيرفر البث فور حفظ التعديل' : 'Changes will be automatically synced with the streaming server'; ?></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal"><?php echo $lang === 'ar' ? 'إلغاء' : 'Cancel'; ?></button>
+                        <button type="submit" class="btn btn-neon rounded-pill"><?php echo $lang === 'ar' ? 'تحديث ومزامنة البيانات' : 'Update & Sync Customer'; ?></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function openEditCustomerModal(data) {
+            if (!data) return;
+            document.getElementById('editCustomerId').value = data.id || 0;
+            document.getElementById('editCustomerUsername').value = data.username || '';
+            document.getElementById('editCustomerPassword').value = '';
+            document.getElementById('editCustomerName').value = data.customer_name || '';
+            document.getElementById('editCustomerEmail').value = data.email || '';
+            document.getElementById('editCustomerPhone').value = data.phone || '';
+            document.getElementById('editCustomerExpiry').value = data.expiry_date || '';
+            document.getElementById('editCustomerMaxConn').value = data.max_connections || 1;
+            document.getElementById('editCustomerNotes').value = data.notes || '';
+            var modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
+            modal.show();
+        }
         function togglePassPeek(id) {
             var el = document.getElementById('pass-' + id);
             if (!el) return;

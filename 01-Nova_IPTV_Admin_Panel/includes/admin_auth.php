@@ -98,8 +98,8 @@ if (!function_exists('adminBuiltinDefaultRolePermissions')) {
         return [
             ADMIN_ROLE_ADMIN => [
                 'profile', 'dashboard', 'devices_view', 'devices_add', 'devices_edit', 'devices_delete',
-                'settings', 'feedbacks', 'feedbacks_delete', 'manage_activations', 'expiring', 'activity_log_clear',
-                'notifications_send',
+                'feedbacks', 'feedbacks_delete', 'manage_activations', 'expiring', 'activity_log_clear',
+                'notifications_send', 'users_create',
             ],
             ADMIN_ROLE_MODERATOR => [
                 'profile', 'dashboard', 'devices_view', 'devices_add', 'devices_edit',
@@ -123,12 +123,12 @@ if (!function_exists('adminConfigurableRoles')) {
 }
 
 if (!function_exists('adminAllAssignablePermissionKeys')) {
-    /** كل المفاتيح القابلة للتخصيص (بدون *) */
+    /** كل المفاتيح القابلة للتخصيص (بدون *) - صفحة الإعدادات وأسرار السيرفر حصرية للمسؤول الأعلى */
     function adminAllAssignablePermissionKeys(): array
     {
         return [
             'profile', 'dashboard', 'devices_view', 'devices_add', 'devices_edit', 'devices_delete',
-            'settings', 'feedbacks', 'feedbacks_delete', 'manage_activations', 'expiring', 'activity_log_clear',
+            'feedbacks', 'feedbacks_delete', 'manage_activations', 'expiring', 'activity_log_clear',
             'users_manage',
             'users_create',
             'notifications_send',
@@ -269,6 +269,13 @@ if (!function_exists('adminRolePermissions')) {
         return adminRoleIsModerator(adminSessionRole());
     }
 
+    /** فحص هل الحساب موظف / مدير فرعي تقني (admin أو moderator) */
+    function adminIsSubAdminRole(): bool
+    {
+        $role = adminSessionRole();
+        return adminRoleIsAdmin($role) || adminRoleIsModerator($role);
+    }
+
     /** دور الضيف (viewer) — عرض محدود بدون أسرار/روابط كاملة. */
     function adminIsGuestRole(): bool
     {
@@ -293,6 +300,10 @@ if (!function_exists('adminRolePermissions')) {
         $role = adminSessionRole();
         if ($role === '') {
             return false;
+        }
+        // صفحة الإعدادات وأسرار السيرفر والـ API حصرية لمالك النظام الرئيسي (super_admin)
+        if ($permission === 'settings') {
+            return adminRoleIsSuperAdmin($role);
         }
         $map = adminRolePermissions();
         $perms = $map[$role] ?? [];
@@ -438,7 +449,7 @@ if (!function_exists('adminRedirectIfSecurityKeysMissing')) {
      */
     function adminRedirectIfSecurityKeysMissing(PDO $conn): void
     {
-        if (!function_exists('adminIsLoggedIn') || !adminIsLoggedIn()) {
+        if (!function_exists('adminIsLoggedIn') || !adminIsLoggedIn() || !adminIsSuperAdmin()) {
             return;
         }
         $page = $GLOBALS['current_page'] ?? '';

@@ -32,6 +32,21 @@ $isSettingsAjax = (
     || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
 );
 
+// Strict Security Enforcement: Sub-admins, staff, resellers, and viewers are completely BLOCKED from Settings
+if (!adminIsSuperAdmin()) {
+    if ($isSettingsAjax) {
+        header('Content-Type: application/json; charset=utf-8');
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Access Denied: Settings and streaming server credentials are restricted exclusively to the Master Owner.',
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    header('Location: access_denied.php?perm=settings');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     admin_require_csrf($isSettingsAjax);
     if (!$canEditSettings) {

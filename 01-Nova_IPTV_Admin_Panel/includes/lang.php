@@ -244,11 +244,11 @@ $translations = [
         'users.badge_you' => 'أنت',
         'users.error_no_edit_super' => 'لا يمكن تعديل دور المسؤول الأعلى من هذه الصفحة.',
 
-        'role.super_admin' => 'مسؤول أعلى (كل الصلاحيات)',
-        'role.admin' => 'مدير',
-        'role.moderator' => 'مشرف',
-        'role.reseller' => 'موزع (Reseller)',
-        'role.viewer' => 'زائر',
+        'role.super_admin' => 'مالك النظام / المسؤول الرئيسي (Master Owner)',
+        'role.admin' => 'مشرف دعم فني / Sub-Admin (إدارة ودعم المشتركين)',
+        'role.moderator' => 'مشرف خدمة العملاء (Support Staff)',
+        'role.reseller' => 'موزع معزول (Reseller - Isolated Scope)',
+        'role.viewer' => 'زائر / مراقب (Read-Only Viewer)',
 
         'users.perm_matrix_title' => 'إعدادات متقدمة: صلاحيات الأدوار',
         'users.perm_matrix_subtitle' => 'للمسؤول الأعلى فقط. حدّد ما يفعله كل دور في اللوحة.',
@@ -1080,11 +1080,11 @@ $translations = [
         'users.badge_you' => 'You',
         'users.error_no_edit_super' => 'The super admin role cannot be changed from this page.',
 
-        'role.super_admin' => 'Super admin (full access)',
-        'role.admin' => 'Administrator',
-        'role.moderator' => 'Moderator',
-        'role.reseller' => 'Reseller',
-        'role.viewer' => 'Guest',
+        'role.super_admin' => 'Master Owner (Full Privileges)',
+        'role.admin' => 'Staff / Sub-Admin (Technical Customer Support)',
+        'role.moderator' => 'Support Staff (Customer Support)',
+        'role.reseller' => 'Reseller (Isolated Scope)',
+        'role.viewer' => 'Viewer (Read-Only)',
 
         'users.perm_matrix_title' => 'Advanced: role permissions',
         'users.perm_matrix_subtitle' => 'Super admin only. Choose what each role can do in the panel.',

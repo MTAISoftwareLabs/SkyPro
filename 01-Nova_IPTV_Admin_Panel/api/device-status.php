@@ -43,14 +43,38 @@ if (!adminCan('devices_view') && !adminCan('dashboard') && !adminCan('manage_act
 $thresholdSeconds = 60; // مدة اعتبار الجهاز متصل حاليًا (ثوانٍ)
 
 try {
-    $stmt = $conn->query(
-        "SELECT a.id, a.device_id, a.device_name, a.status, a.activation_date, a.expiry_date, a.last_seen_at,
-                a.account_key, a.account_display_name, a.code_server_host,
-                (SELECT COUNT(*) FROM playlist_code_devices d WHERE d.device_id = a.device_id) AS code_usage_count
-         FROM activated_devices a
-         WHERE a.status IS NULL OR a.status <> 'deleted'"
-    );
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $resellerId = null;
+    if (function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+        $resellerId = (int)$_SESSION['admin_user_id'];
+    }
+
+    if ($resellerId !== null) {
+        $stmt = $conn->prepare(
+            "SELECT a.id, a.device_id, a.device_name, a.status, a.activation_date, a.expiry_date, a.last_seen_at,
+                    a.account_key, a.account_display_name, a.code_server_host,
+                    (SELECT COUNT(*) FROM playlist_code_devices d WHERE d.device_id = a.device_id) AS code_usage_count
+             FROM activated_devices a
+             INNER JOIN iptv_customers c ON (
+                 c.username = a.manual_login_username 
+                 OR c.username = a.account_display_name 
+                 OR a.account_key LIKE CONCAT(c.username, '#%') 
+                 OR a.account_key = c.username
+             )
+             WHERE (a.status IS NULL OR a.status <> 'deleted')
+               AND c.created_by = ?"
+        );
+        $stmt->execute([$resellerId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $stmt = $conn->query(
+            "SELECT a.id, a.device_id, a.device_name, a.status, a.activation_date, a.expiry_date, a.last_seen_at,
+                    a.account_key, a.account_display_name, a.code_server_host,
+                    (SELECT COUNT(*) FROM playlist_code_devices d WHERE d.device_id = a.device_id) AS code_usage_count
+             FROM activated_devices a
+             WHERE a.status IS NULL OR a.status <> 'deleted'"
+        );
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     $isGuest = adminIsGuestRole();
 
     $now = time();

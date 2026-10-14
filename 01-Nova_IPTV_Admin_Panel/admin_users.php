@@ -8,10 +8,19 @@ require_once 'includes/admin_auth.php';
 createDatabaseTable($conn);
 adminBootstrapLogin($conn);
 
+$isSuperAdmin = adminIsSuperAdmin();
+$isSubAdmin = adminIsSubAdminRole();
+$canCreateUsers = $isSuperAdmin || $isSubAdmin || adminCan('users_create');
+$canManageUsers = $isSuperAdmin;
+
+// السماح لمالك النظام الرئيسي (super_admin) أو الموظفين/المدراء الفرعيين (sub-admins) بفتح وإدارة حسابات الموزعين
+if (!$canCreateUsers && !$canManageUsers) {
+    header('Location: access_denied.php?perm=users_create');
+    exit;
+}
+
 $current_page = 'admin_users';
 $myId = (int) $_SESSION['admin_user_id'];
-$canManageUsers = adminCan('users_manage');
-$canCreateUsers = adminCan('users_create');
 
 function adminCountActiveSuperAdmins(PDO $conn): int
 {
@@ -48,18 +57,18 @@ function adminUserRowCanDelete(PDO $conn, array $u, int $myId): bool
     if ((int) ($u['id'] ?? 0) === $myId) {
         return false;
     }
-    // أي مستخدم غير super_admin ممنوع من حذف super_admin (قيد خاص لحماية حسابك الرئيسي).
-    if (adminRoleIsSuperAdmin((string) ($u['role'] ?? '')) && !adminIsSuperAdmin()) {
-        return false;
-    }
-    // إذا كان الداخل هو مشرف (moderator) فنسمح فقط بحذف من تحته: مدير وضيف.
-    if (adminIsModeratorRole()) {
-        $targetRole = (string) ($u['role'] ?? '');
-        if (!adminRoleIsAdmin($targetRole) && !adminRoleIsGuest($targetRole)) {
+    $targetRole = (string) ($u['role'] ?? '');
+    $isSuper = adminIsSuperAdmin();
+    // أي مستخدم غير super_admin مسموح له فقط بحذف حسابات الموزعين (reseller) أو الزوار
+    if (!$isSuper) {
+        if ($targetRole !== ADMIN_ROLE_RESELLER && $targetRole !== ADMIN_ROLE_VIEWER) {
             return false;
         }
     }
-    if (adminRoleIsSuperAdmin((string) ($u['role'] ?? '')) && (int) ($u['is_active'] ?? 0) === 1 && adminCountActiveSuperAdmins($conn) <= 1) {
+    if (adminRoleIsSuperAdmin($targetRole) && !$isSuper) {
+        return false;
+    }
+    if (adminRoleIsSuperAdmin($targetRole) && (int) ($u['is_active'] ?? 0) === 1 && adminCountActiveSuperAdmins($conn) <= 1) {
         return false;
     }
     return true;
@@ -71,11 +80,17 @@ function adminUserRowCanToggle(PDO $conn, array $u, int $myId): bool
     if ((int) ($u['id'] ?? 0) === $myId) {
         return false;
     }
-    // غير super_admin ممنوع من التعامل مع حسابات super_admin (حتى بالتفعيل/التعطيل).
-    if (($u['role'] ?? '') === 'super_admin' && !adminIsSuperAdmin()) {
+    $targetRole = (string) ($u['role'] ?? '');
+    $isSuper = adminIsSuperAdmin();
+    if (!$isSuper) {
+        if ($targetRole !== ADMIN_ROLE_RESELLER && $targetRole !== ADMIN_ROLE_VIEWER) {
+            return false;
+        }
+    }
+    if ($targetRole === 'super_admin' && !$isSuper) {
         return false;
     }
-    if (($u['role'] ?? '') === 'super_admin' && (int) ($u['is_active'] ?? 0) === 1 && adminCountActiveSuperAdmins($conn) <= 1) {
+    if ($targetRole === 'super_admin' && (int) ($u['is_active'] ?? 0) === 1 && adminCountActiveSuperAdmins($conn) <= 1) {
         return false;
     }
     return true;
@@ -131,7 +146,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: access_denied.php?perm=users_create');
             exit;
         }
-    } elseif (!$canManageUsers) {
+    } elseif ($op === 'change_role') {
+        if (!$isSuperAdmin) {
+            header('Location: access_denied.php?perm=users_manage');
+            exit;
+        }
+    } elseif (!$canManageUsers && !$isSubAdmin) {
         header('Location: access_denied.php?perm=users_manage');
         exit;
     }
@@ -140,11 +160,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = trim((string) ($_POST['username'] ?? ''));
         $email = trim((string) ($_POST['email'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
-        $role = (string) ($_POST['role'] ?? ADMIN_ROLE_VIEWER);
+        $role = (string) ($_POST['role'] ?? ADMIN_ROLE_RESELLER);
 
-        // صلاحية إنشاء فقط لا تسمح بترقية الدور.
-        if (!$canManageUsers) {
-            $role = ADMIN_ROLE_VIEWER;
+        // Sub-admins have strict authority to open and provision Resellers only
+        if (!$isSuperAdmin) {
+            $role = ADMIN_ROLE_RESELLER;
         }
         if (!preg_match('/^[a-zA-Z0-9_]{3,64}$/', $username)) {
             $msgErr = t('users.error_username');
@@ -157,10 +177,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $emailVal = $email === '' ? null : $email;
+            $createdBy = $myId;
             try {
-                $ins = $conn->prepare('INSERT INTO admin_users (username, email, password_hash, role, is_active) VALUES (?, ?, ?, ?, 1)');
-                $ins->execute([$username, $emailVal, $hash, $role]);
-                $msgOk = t('users.success_added');
+                $ins = $conn->prepare('INSERT INTO admin_users (username, email, password_hash, role, is_active, created_by) VALUES (?, ?, ?, ?, 1, ?)');
+                $ins->execute([$username, $emailVal, $hash, $role, $createdBy]);
+                $msgOk = $isSuperAdmin 
+                    ? t('users.success_added') 
+                    : ($lang === 'ar' ? 'تم فتح وإنشاء حساب الموزع الجديد بنجاح!' : 'New Reseller account opened and created successfully!');
             } catch (PDOException $e) {
                 if ((int) $e->getCode() === 23000) {
                     $msgErr = t('users.error_exists');
@@ -199,13 +222,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($tid <= 0 || strlen($newPw) < 8) {
             $msgErr = t('profile.error_short');
         } else {
-            // حماية: لا تسمح لغير super_admin بإعادة تعيين كلمة مرور super_admin.
             $stmt = $conn->prepare('SELECT id, role FROM admin_users WHERE id = ? LIMIT 1');
             $stmt->execute([$tid]);
             $u = $stmt->fetch(PDO::FETCH_ASSOC);
+            $targetRole = (string)($u['role'] ?? '');
             if (!$u) {
                 $msgErr = t('msg.db_error');
-            } elseif (($u['role'] ?? '') === 'super_admin' && !adminIsSuperAdmin()) {
+            } elseif (!$isSuperAdmin && $targetRole !== ADMIN_ROLE_RESELLER && $targetRole !== ADMIN_ROLE_VIEWER) {
+                $msgErr = t('users.error_no_edit_super');
+            } elseif ($targetRole === 'super_admin' && !$isSuperAdmin) {
                 $msgErr = t('users.error_no_edit_super');
             } else {
                 $hash = password_hash($newPw, PASSWORD_DEFAULT);
@@ -221,6 +246,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($op === 'change_role') {
+        if (!$isSuperAdmin) {
+            header('Location: access_denied.php?perm=users_manage');
+            exit;
+        }
         $tid = (int) ($_POST['user_id'] ?? 0);
         $newRole = (string) ($_POST['role'] ?? '');
         if ($tid <= 0 || !adminIsAssignableRole($newRole)) {
@@ -265,13 +294,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$users = $conn->query('SELECT id, username, email, role, is_active, last_login_at FROM admin_users ORDER BY id ASC')->fetchAll(PDO::FETCH_ASSOC);
+$users = $conn->query('SELECT u.id, u.username, u.email, u.role, u.is_active, u.created_by, u.last_login_at, creator.username AS creator_username 
+    FROM admin_users u 
+    LEFT JOIN admin_users creator ON u.created_by = creator.id 
+    ORDER BY u.id ASC')->fetchAll(PDO::FETCH_ASSOC);
 
 /**
- * إخفاء صفوف `super_admin` و`admin` عن باقي الأدوار (مع إبقاء صفّك أنت ظاهر).
- * هذا إخفاء واجهة للخصوصية فقط؛ الصلاحيات الفعلية ما زالت تُفرض في الـ backend.
+ * إخفاء صفوف `super_admin` و`admin` عن موظفي الدعم الفرعيين.
+ * الموظف يرى فقط الموزعين والزوار بالإضافة لحسابه الشخصي.
  */
-$hidePrivilegedRows = !adminIsSuperAdmin();
+$hidePrivilegedRows = !$isSuperAdmin;
 if ($hidePrivilegedRows) {
     $users = array_values(array_filter($users, static function ($u) use ($myId) {
         $role = (string) ($u['role'] ?? '');
@@ -279,7 +311,7 @@ if ($hidePrivilegedRows) {
         if ($id === (int) $myId) {
             return true;
         }
-        return !adminRoleIsSuperAdmin($role) && !adminRoleIsAdmin($role);
+        return $role === ADMIN_ROLE_RESELLER || $role === ADMIN_ROLE_VIEWER;
     }));
 }
 
@@ -905,27 +937,35 @@ foreach ($permKeysForLabels as $pk) {
 
 <div class="container admin-main mt-4">
     <div class="staff-hero">
-        <h1><i class="fas fa-users"></i><span><?php echo t('users.title'); ?></span></h1>
-        <p><?php echo t('users.subtitle'); ?></p>
+        <h1>
+            <i class="fas <?php echo $isSuperAdmin ? 'fa-user-shield' : 'fa-handshake'; ?>"></i>
+            <span><?php echo $isSuperAdmin ? t('users.title') : ($lang === 'ar' ? 'إدارة وفتح حسابات الموزعين (Resellers)' : 'Reseller Account Management'); ?></span>
+        </h1>
+        <p><?php echo $isSuperAdmin ? t('users.subtitle') : ($lang === 'ar' ? 'يمكنك هنا فتح وإنشاء حسابات جديدة للموزعين، ضبط كلمات المرور وإدارة نشاطهم.' : 'Create and provision new reseller accounts, manage credentials, and oversee reseller activity.'); ?></p>
     </div>
 
     <?php if ($hidePrivilegedRows): ?>
     <div class="staff-privacy-note">
         <i class="fas fa-user-lock"></i>
-        <span><?php echo t('users.list_guest_privacy'); ?></span>
+        <span><?php echo $lang === 'ar' ? 'بيئة موظف معتمدة: مصرح لك بإنشاء وإدارة حسابات الموزعين فقط.' : 'Authorized Staff Scope: You are authorized to create and manage Reseller accounts only.'; ?></span>
     </div>
     <?php endif; ?>
 
     <?php if ($msgOk): ?><div class="alert alert-success"><?php echo htmlspecialchars($msgOk); ?></div><?php endif; ?>
     <?php if ($msgErr): ?><div class="alert alert-danger"><?php echo htmlspecialchars($msgErr); ?></div><?php endif; ?>
 
-    <!-- Section 1: Add staff -->
+    <!-- Section 1: Add staff / reseller -->
     <div class="staff-card">
         <div class="staff-card__body">
             <div class="staff-card__head">
                 <div>
-                    <h2 class="staff-card__title"><i class="fas fa-user-plus"></i><?php echo t('users.section_add'); ?></h2>
-                    <p class="staff-card__hint"><?php echo t('users.cannot_super_here'); ?></p>
+                    <h2 class="staff-card__title">
+                        <i class="fas <?php echo $isSuperAdmin ? 'fa-user-plus' : 'fa-handshake text-info'; ?>"></i>
+                        <span><?php echo $isSuperAdmin ? t('users.section_add') : ($lang === 'ar' ? 'فتح حساب موزع جديد (Add New Reseller)' : 'Add New Reseller Account'); ?></span>
+                    </h2>
+                    <p class="staff-card__hint">
+                        <?php echo $isSuperAdmin ? t('users.cannot_super_here') : ($lang === 'ar' ? 'إنشاء حساب موزع معزول (Reseller) لتقديم لوحة مخصصة لمشتركيه.' : 'Provision an isolated Reseller account with dedicated customer scope.'); ?>
+                    </p>
                 </div>
             </div>
             <?php if (!$canCreateUsers && adminIsGuestRole()): ?>
@@ -937,31 +977,42 @@ foreach ($permKeysForLabels as $pk) {
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label"><?php echo t('users.add_username'); ?></label>
-                        <input type="text" name="username" class="form-control" required pattern="[a-zA-Z0-9_]{3,64}" autocomplete="off">
+                        <input type="text" name="username" class="form-control" required pattern="[a-zA-Z0-9_]{3,64}" autocomplete="off" placeholder="<?php echo $lang === 'ar' ? 'اسم المستخدم للموزع' : 'Reseller username'; ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label"><?php echo t('users.add_email'); ?></label>
-                        <input type="email" name="email" class="form-control" autocomplete="off">
+                        <input type="email" name="email" class="form-control" autocomplete="off" placeholder="reseller@example.com">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label"><?php echo t('users.add_password'); ?></label>
-                        <input type="password" name="password" class="form-control" required minlength="8" autocomplete="new-password">
+                        <input type="password" name="password" class="form-control" required minlength="8" autocomplete="new-password" placeholder="••••••••">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label"><?php echo t('users.add_role'); ?></label>
-                        <select name="role" id="staffAddRoleSelect" class="form-select" <?php echo $canManageUsers ? '' : 'disabled'; ?>>
-                            <?php foreach (adminAssignableRoles() as $r): ?>
-                                <?php if (!$canManageUsers && $r !== ADMIN_ROLE_VIEWER) continue; ?>
-                                <option value="<?php echo htmlspecialchars($r); ?>" <?php echo $r === ADMIN_ROLE_VIEWER ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars(adminRoleLabel($r)); ?>
+                        <?php if ($isSuperAdmin): ?>
+                            <select name="role" id="staffAddRoleSelect" class="form-select">
+                                <?php foreach (adminAssignableRoles() as $r): ?>
+                                    <option value="<?php echo htmlspecialchars($r); ?>" <?php echo $r === ADMIN_ROLE_RESELLER ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars(adminRoleLabel($r)); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php else: ?>
+                            <select name="role" id="staffAddRoleSelect" class="form-select">
+                                <option value="<?php echo ADMIN_ROLE_RESELLER; ?>" selected>
+                                    <?php echo htmlspecialchars(adminRoleLabel(ADMIN_ROLE_RESELLER)); ?>
                                 </option>
-                            <?php endforeach; ?>
-                        </select>
+                            </select>
+                        <?php endif; ?>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100"><?php echo t('users.btn_add'); ?></button>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-1"></i>
+                            <span><?php echo $isSuperAdmin ? t('users.btn_add') : ($lang === 'ar' ? 'فتح حساب موزع' : 'Add Reseller'); ?></span>
+                        </button>
                     </div>
                 </div>
+                <?php if ($isSuperAdmin): ?>
                 <div class="row mt-3">
                     <div class="col-12">
                         <div class="role-perm-preview-box" id="rolePermissionsPreview">
@@ -973,6 +1024,7 @@ foreach ($permKeysForLabels as $pk) {
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 </fieldset>
             </form>
         </div>
@@ -996,12 +1048,19 @@ foreach ($permKeysForLabels as $pk) {
                             <th><?php echo t('users.table_role'); ?></th>
                             <th><?php echo t('users.table_status'); ?></th>
                             <th><?php echo t('users.table_last_login'); ?></th>
+                            <?php if ($isSuperAdmin): ?>
+                            <th><?php echo $lang === 'ar' ? 'أنشئ بواسطة' : 'Created By'; ?></th>
+                            <?php endif; ?>
                             <th class="staff-col-actions text-lg-end"><?php echo t('users.table_actions'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php foreach ($users as $u): ?>
-                        <?php $rowId = (int) $u['id']; ?>
+                        <?php 
+                            $rowId = (int) $u['id']; 
+                            $rowRole = (string) ($u['role'] ?? '');
+                            $canManageRow = $isSuperAdmin || ($isSubAdmin && in_array($rowRole, [ADMIN_ROLE_RESELLER, ADMIN_ROLE_VIEWER], true));
+                        ?>
                         <tr>
                             <td data-label="<?php echo htmlspecialchars(t('users.table_user')); ?>">
                                 <div class="d-flex align-items-center flex-wrap gap-1">
@@ -1015,19 +1074,23 @@ foreach ($permKeysForLabels as $pk) {
                             <td data-label="<?php echo htmlspecialchars(t('users.table_role')); ?>">
                                 <?php if ($u['role'] === 'super_admin'): ?>
                                     <?php echo htmlspecialchars(adminRoleLabel('super_admin')); ?>
-                                <?php else: ?>
+                                <?php elseif ($isSuperAdmin): ?>
                                     <form method="post" class="d-flex gap-2 align-items-center flex-wrap" data-admin-perm="users_manage">
                                         <input type="hidden" name="admin_op" value="change_role">
                                         <input type="hidden" name="user_id" value="<?php echo $rowId; ?>">
-                                        <select name="role" class="form-select form-select-sm" style="max-width:200px;" <?php echo $canManageUsers ? '' : 'disabled'; ?>>
+                                        <select name="role" class="form-select form-select-sm" style="max-width:200px;">
                                             <?php foreach ($allowedRoles as $r): ?>
                                                 <option value="<?php echo htmlspecialchars($r); ?>" <?php echo $u['role'] === $r ? 'selected' : ''; ?>>
                                                     <?php echo htmlspecialchars(adminRoleLabel($r)); ?>
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
-                                        <button type="submit" class="btn btn-sm btn-outline-light" <?php echo $canManageUsers ? '' : 'disabled'; ?>><?php echo t('button.save_changes'); ?></button>
+                                        <button type="submit" class="btn btn-sm btn-outline-light"><?php echo t('button.save_changes'); ?></button>
                                     </form>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary-subtle text-info border border-info-subtle">
+                                        <?php echo htmlspecialchars(adminRoleLabel($u['role'])); ?>
+                                    </span>
                                 <?php endif; ?>
                             </td>
                             <td data-label="<?php echo htmlspecialchars(t('users.table_status')); ?>">
@@ -1038,6 +1101,21 @@ foreach ($permKeysForLabels as $pk) {
                                 <?php endif; ?>
                             </td>
                             <td class="small" data-label="<?php echo htmlspecialchars(t('users.table_last_login')); ?>"><?php echo $u['last_login_at'] ? htmlspecialchars(format_datetime_short($u['last_login_at'])) : '—'; ?></td>
+                            <?php if ($isSuperAdmin): ?>
+                            <td data-label="<?php echo $lang === 'ar' ? 'أنشئ بواسطة' : 'Created By'; ?>">
+                                <?php if (!empty($u['creator_username'])): ?>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                        <i class="fas fa-user-tie me-1"></i><?php echo htmlspecialchars($u['creator_username']); ?>
+                                    </span>
+                                <?php elseif ($rowRole === 'super_admin'): ?>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                        <i class="fas fa-crown me-1"></i><?php echo $lang === 'ar' ? 'المالك الرئيسي' : 'Master Owner'; ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-muted small">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <?php endif; ?>
                             <td class="staff-actions-cell text-lg-end" data-label="<?php echo htmlspecialchars(t('users.table_actions')); ?>">
                                 <?php if ($rowId === $myId): ?>
                                     <span class="staff-your-badge"><i class="fas fa-user-check"></i> <?php echo t('users.actions_your_row'); ?></span>
@@ -1063,7 +1141,7 @@ foreach ($permKeysForLabels as $pk) {
                                               ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>">
                                             <input type="hidden" name="admin_op" value="toggle">
                                             <input type="hidden" name="user_id" value="<?php echo $rowId; ?>">
-                                            <button type="submit" class="staff-act-btn staff-act-toggle" title="<?php echo htmlspecialchars(t('users.btn_toggle')); ?>" <?php echo $canManageUsers ? '' : 'disabled'; ?>>
+                                            <button type="submit" class="staff-act-btn staff-act-toggle" title="<?php echo htmlspecialchars(t('users.btn_toggle')); ?>" <?php echo $canManageRow ? '' : 'disabled'; ?>>
                                                 <i class="fas fa-<?php echo (int) $u['is_active'] ? 'user-slash' : 'user-check'; ?>"></i>
                                                 <span class="staff-act-label"><?php echo t('users.btn_toggle'); ?></span>
                                             </button>
@@ -1073,7 +1151,7 @@ foreach ($permKeysForLabels as $pk) {
                                                 data-bs-toggle="collapse" data-bs-target="#staffPw<?php echo $rowId; ?>"
                                                 aria-expanded="false" aria-controls="staffPw<?php echo $rowId; ?>"
                                                 title="<?php echo htmlspecialchars(t('users.btn_reset_pass')); ?>"
-                                                <?php echo $canManageUsers ? '' : 'disabled'; ?>>
+                                                <?php echo $canManageRow ? '' : 'disabled'; ?>>
                                             <i class="fas fa-key"></i>
                                             <span class="staff-act-label"><?php echo t('users.btn_reset_pass'); ?></span>
                                         </button>
@@ -1093,7 +1171,7 @@ foreach ($permKeysForLabels as $pk) {
                                               ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>">
                                             <input type="hidden" name="admin_op" value="delete">
                                             <input type="hidden" name="user_id" value="<?php echo $rowId; ?>">
-                                            <button type="submit" class="staff-act-btn staff-act-del" title="<?php echo htmlspecialchars(t('users.btn_delete')); ?>" <?php echo $canManageUsers ? '' : 'disabled'; ?>>
+                                            <button type="submit" class="staff-act-btn staff-act-del" title="<?php echo htmlspecialchars(t('users.btn_delete')); ?>" <?php echo $canManageRow ? '' : 'disabled'; ?>>
                                                 <i class="fas fa-trash-alt"></i>
                                                 <span class="staff-act-label"><?php echo t('users.btn_delete'); ?></span>
                                             </button>
@@ -1123,8 +1201,8 @@ foreach ($permKeysForLabels as $pk) {
                                                   ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>">
                                                 <input type="hidden" name="admin_op" value="reset_password">
                                                 <input type="hidden" name="user_id" value="<?php echo $rowId; ?>">
-                                                <input type="password" name="new_password" class="form-control form-control-sm" placeholder="<?php echo htmlspecialchars(t('users.new_password_placeholder')); ?>" minlength="8" autocomplete="new-password" required <?php echo $canManageUsers ? '' : 'disabled'; ?>>
-                                                <button type="submit" class="btn btn-sm btn-primary" <?php echo $canManageUsers ? '' : 'disabled'; ?>><?php echo t('users.pw_panel_submit'); ?></button>
+                                                <input type="password" name="new_password" class="form-control form-control-sm" placeholder="<?php echo htmlspecialchars(t('users.new_password_placeholder')); ?>" minlength="8" autocomplete="new-password" required <?php echo $canManageRow ? '' : 'disabled'; ?>>
+                                                <button type="submit" class="btn btn-sm btn-primary" <?php echo $canManageRow ? '' : 'disabled'; ?>><?php echo t('users.pw_panel_submit'); ?></button>
                                             </form>
                                         </div>
                                     </div>
