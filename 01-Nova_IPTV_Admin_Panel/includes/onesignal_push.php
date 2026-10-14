@@ -192,6 +192,8 @@ if (!function_exists('onesignal_send_push')) {
             'headings' => ['en' => $title, 'ar' => $title],
             'contents' => ['en' => $message, 'ar' => $message],
             'target_channel' => 'push',
+            'small_icon' => 'ic_stat_onesignal_default',
+            'large_icon' => 'ic_onesignal_large_icon_default',
         ];
 
         if ($linkUrl !== '') {
