@@ -2303,19 +2303,115 @@ function syncExpiredCustomers(PDO $conn): void
     } catch (Throwable $e) {}
 }
 
+function syncCustomersWithActivatedDevices(PDO $conn): void
+{
+    try {
+        $st = $conn->query("SELECT id, device_id, device_name, account_key, manual_login_username, manual_login_password, account_display_name, expiry_date, status FROM activated_devices WHERE (status IS NULL OR status <> 'deleted')");
+        $rows = $st ? $st->fetchAll(PDO::FETCH_ASSOC) : [];
+        if (!$rows) return;
+
+        $checkStmt = $conn->prepare("SELECT id FROM iptv_customers WHERE username = ? LIMIT 1");
+        $insStmt = $conn->prepare("INSERT INTO iptv_customers (username, password, customer_name, expiry_date, status, server_sync_status, server_sync_message) VALUES (?, ?, ?, ?, ?, 'synced', 'Auto-imported from active device line')");
+
+        foreach ($rows as $r) {
+            $ak = trim((string)($r['account_key'] ?? ''));
+            $manualUser = trim((string)($r['manual_login_username'] ?? ''));
+            $dispName = trim((string)($r['account_display_name'] ?? ''));
+            $pass = trim((string)($r['manual_login_password'] ?? ''));
+            if ($pass === '') $pass = '123456';
+
+            $uname = '';
+            if ($manualUser !== '') {
+                $uname = $manualUser;
+            } elseif ($ak !== '') {
+                if (strpos($ak, '#') !== false) {
+                    $parts = explode('#', $ak, 2);
+                    $uname = ($parts[0] !== 'url') ? $parts[0] : '';
+                } elseif (strpos($ak, ':') !== false) {
+                    $uname = explode(':', $ak, 2)[0];
+                } else {
+                    $uname = $ak;
+                }
+            } elseif ($dispName !== '') {
+                $uname = $dispName;
+            }
+
+            $uname = trim($uname);
+            if ($uname === '') continue;
+
+            $checkStmt->execute([$uname]);
+            if (!$checkStmt->fetch()) {
+                $cname = $dispName !== '' ? $dispName : (trim((string)($r['device_name'] ?? '')) ?: $uname);
+                $exp = !empty($r['expiry_date']) ? $r['expiry_date'] : date('Y-m-d H:i:s', strtotime('+30 days'));
+                $devStatus = strtolower(trim((string)($r['status'] ?? 'active')));
+                $custStatus = ($devStatus === 'blocked') ? 'disabled' : (($devStatus === 'expired') ? 'expired' : 'active');
+                $insStmt->execute([$uname, $pass, $cname, $exp, $custStatus]);
+            }
+        }
+    } catch (Throwable $e) {}
+}
+
 function getCustomers(PDO $conn, string $filter = '', string $search = ''): array
 {
     syncExpiredCustomers($conn);
+    syncCustomersWithActivatedDevices($conn);
     try {
-        $sql = "SELECT c.*, u.username AS creator_username FROM iptv_customers c LEFT JOIN admin_users u ON c.created_by = u.id WHERE 1=1";
+        $sql = "SELECT c.*, 
+                       u.username AS creator_username,
+                       d.last_seen_at AS device_last_seen,
+                       d.watching_type,
+                       d.watching_title,
+                       d.watching_updated_at,
+                       d.device_name,
+                       d.device_id,
+                       d.device_status,
+                       (CASE 
+                           WHEN d.last_seen_at IS NOT NULL AND TIMESTAMPDIFF(SECOND, d.last_seen_at, NOW()) <= 90 THEN 1 
+                           ELSE 0 
+                        END) AS is_online,
+                       (CASE 
+                           WHEN d.watching_title IS NOT NULL 
+                                AND d.watching_title <> '' 
+                                AND d.watching_updated_at IS NOT NULL 
+                                AND TIMESTAMPDIFF(SECOND, d.watching_updated_at, NOW()) <= 90 THEN 1 
+                           ELSE 0 
+                        END) AS is_streaming
+                FROM iptv_customers c
+                LEFT JOIN admin_users u ON c.created_by = u.id
+                LEFT JOIN (
+                    SELECT 
+                        CASE 
+                            WHEN manual_login_username IS NOT NULL AND manual_login_username <> '' THEN manual_login_username
+                            WHEN account_key IS NOT NULL AND account_key LIKE '%#%' THEN SUBSTRING_INDEX(account_key, '#', 1)
+                            WHEN account_display_name IS NOT NULL AND account_display_name <> '' THEN account_display_name
+                            ELSE ''
+                        END AS match_user,
+                        device_id,
+                        device_name,
+                        status AS device_status,
+                        watching_type,
+                        watching_title,
+                        watching_updated_at,
+                        MAX(last_seen_at) AS last_seen_at
+                    FROM activated_devices
+                    WHERE status IS NULL OR status <> 'deleted'
+                    GROUP BY match_user
+                ) d ON (d.match_user = c.username)
+                WHERE 1=1";
+
         $params = [];
         if ($filter === 'active') {
             $sql .= " AND c.status = 'active'";
         } elseif ($filter === 'expired') {
             $sql .= " AND c.status = 'expired'";
-        } elseif ($filter === 'disabled') {
-            $sql .= " AND c.status = 'disabled'";
+        } elseif ($filter === 'disabled' || $filter === 'blocked') {
+            $sql .= " AND (c.status = 'disabled' OR c.status = 'blocked')";
+        } elseif ($filter === 'online') {
+            $sql .= " AND d.last_seen_at IS NOT NULL AND TIMESTAMPDIFF(SECOND, d.last_seen_at, NOW()) <= 90";
+        } elseif ($filter === 'streaming') {
+            $sql .= " AND d.watching_title IS NOT NULL AND d.watching_title <> '' AND d.watching_updated_at IS NOT NULL AND TIMESTAMPDIFF(SECOND, d.watching_updated_at, NOW()) <= 90";
         }
+
         if ($search !== '') {
             $sql .= " AND (c.username LIKE ? OR c.customer_name LIKE ? OR c.email LIKE ? OR c.phone LIKE ?)";
             $q = '%' . $search . '%';
@@ -2324,12 +2420,18 @@ function getCustomers(PDO $conn, string $filter = '', string $search = ''): arra
             $params[] = $q;
             $params[] = $q;
         }
-        $sql .= " ORDER BY c.id DESC";
+
+        $sql .= " ORDER BY is_streaming DESC, is_online DESC, c.id DESC";
         $stmt = $conn->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (Throwable $e) {
-        return [];
+        try {
+            $stmt = $conn->query("SELECT * FROM iptv_customers ORDER BY id DESC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Throwable $e2) {
+            return [];
+        }
     }
 }
 
@@ -2416,8 +2518,72 @@ function extendCustomer(PDO $conn, int $id, int $days): bool
 function deleteCustomer(PDO $conn, int $id): bool
 {
     try {
+        $c = getCustomerById($conn, $id);
+        if (!$c) return false;
+        $username = trim((string)$c['username']);
         $stmt = $conn->prepare("DELETE FROM iptv_customers WHERE id = ?");
-        return $stmt->execute([$id]);
+        $res = $stmt->execute([$id]);
+
+        if ($username !== '') {
+            $likeUser = $username . '#%';
+            $stmtDev = $conn->prepare("DELETE FROM activated_devices 
+                WHERE account_display_name = ? 
+                   OR manual_login_username = ? 
+                   OR account_key LIKE ? 
+                   OR account_key = ?");
+            $stmtDev->execute([$username, $username, $likeUser, $username]);
+        }
+        return $res;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function blockCustomer(PDO $conn, int $id): bool
+{
+    try {
+        $c = getCustomerById($conn, $id);
+        if (!$c) return false;
+        $username = trim((string)$c['username']);
+        $stmt = $conn->prepare("UPDATE iptv_customers SET status = 'disabled' WHERE id = ?");
+        $res = $stmt->execute([$id]);
+
+        if ($username !== '') {
+            $likeUser = $username . '#%';
+            $stmtDev = $conn->prepare("UPDATE activated_devices 
+                SET status = 'blocked' 
+                WHERE account_display_name = ? 
+                   OR manual_login_username = ? 
+                   OR account_key LIKE ? 
+                   OR account_key = ?");
+            $stmtDev->execute([$username, $username, $likeUser, $username]);
+        }
+        return $res;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function unblockCustomer(PDO $conn, int $id): bool
+{
+    try {
+        $c = getCustomerById($conn, $id);
+        if (!$c) return false;
+        $username = trim((string)$c['username']);
+        $stmt = $conn->prepare("UPDATE iptv_customers SET status = 'active' WHERE id = ?");
+        $res = $stmt->execute([$id]);
+
+        if ($username !== '') {
+            $likeUser = $username . '#%';
+            $stmtDev = $conn->prepare("UPDATE activated_devices 
+                SET status = 'active' 
+                WHERE account_display_name = ? 
+                   OR manual_login_username = ? 
+                   OR account_key LIKE ? 
+                   OR account_key = ?");
+            $stmtDev->execute([$username, $username, $likeUser, $username]);
+        }
+        return $res;
     } catch (Throwable $e) {
         return false;
     }
@@ -2425,13 +2591,11 @@ function deleteCustomer(PDO $conn, int $id): bool
 
 function toggleCustomerStatus(PDO $conn, int $id): bool
 {
-    try {
-        $c = getCustomerById($conn, $id);
-        if (!$c) return false;
-        $newStatus = ($c['status'] === 'active') ? 'disabled' : 'active';
-        $stmt = $conn->prepare("UPDATE iptv_customers SET status = ? WHERE id = ?");
-        return $stmt->execute([$newStatus, $id]);
-    } catch (Throwable $e) {
-        return false;
+    $c = getCustomerById($conn, $id);
+    if (!$c) return false;
+    if ($c['status'] === 'disabled' || $c['status'] === 'blocked') {
+        return unblockCustomer($conn, $id);
+    } else {
+        return blockCustomer($conn, $id);
     }
 }

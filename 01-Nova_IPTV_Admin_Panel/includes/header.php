@@ -466,7 +466,7 @@ body {
 </style>
 <nav class="navbar navbar-expand-lg navbar-dark admin-navbar sticky-top">
     <div class="container-fluid px-3 px-lg-4 admin-navbar-inner">
-        <a class="navbar-brand navbar-brand-pillar d-inline-flex align-items-center gap-2" href="index.php">
+        <a class="navbar-brand navbar-brand-pillar d-inline-flex align-items-center gap-2" href="customers.php">
             <img src="assets/images/skypro_logo.png" alt="SkyPro" style="height:32px;width:32px;object-fit:contain;border-radius:6px;box-shadow:0 0 10px rgba(0,123,255,0.35);"><span class="navbar-brand-text"><?php echo t('app.title'); ?></span>
         </a>
         <button class="navbar-toggler navbar-toggler-end" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="القائمة">
@@ -477,12 +477,7 @@ body {
             <div class="admin-navbar-center-shell">
             <ul class="navbar-nav navbar-nav-main flex-wrap">
                 <li class="nav-item">
-                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'index' ? 'active' : ''; ?>" href="index.php">
-                        <i class="fas fa-home"></i><span><?php echo t('nav.home'); ?></span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo $current_page === 'customers' ? 'active' : ''; ?>" href="customers.php">
+                    <a class="nav-link d-inline-flex align-items-center gap-2 <?php echo in_array($current_page, ['customers', 'index'], true) ? 'active' : ''; ?>" href="customers.php">
                         <i class="fas fa-users"></i><span><?php echo $lang === 'ar' ? 'المشتركون' : 'Customers'; ?></span>
                     </a>
                 </li>

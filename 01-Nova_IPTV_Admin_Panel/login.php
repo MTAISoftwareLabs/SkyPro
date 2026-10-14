@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['admin_email'] = $user['email'] ?? '';
                 $upd = $conn->prepare('UPDATE admin_users SET last_login_at = NOW() WHERE id = ?');
                 $upd->execute([(int) $user['id']]);
-                header('Location: index.php');
+                header('Location: customers.php');
                 exit();
             }
         } catch (Throwable $e) {

@@ -75,6 +75,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = $lang === 'ar' ? 'فشل التمديد.' : 'Failed to extend subscription.';
         }
+    } elseif ($action === 'block') {
+        $id = (int)($_POST['customer_id'] ?? 0);
+        if ($id > 0 && blockCustomer($conn, $id)) {
+            $success = $lang === 'ar' ? 'تم حظر المشترك وتوقيف اتصاله بنجاح!' : 'Customer blocked and streaming access revoked!';
+        } else {
+            $error = $lang === 'ar' ? 'فشل حظر المشترك.' : 'Failed to block customer.';
+        }
+    } elseif ($action === 'unblock') {
+        $id = (int)($_POST['customer_id'] ?? 0);
+        if ($id > 0 && unblockCustomer($conn, $id)) {
+            $success = $lang === 'ar' ? 'تم إلغاء حظر المشترك وتفعيل الحساب بنجاح!' : 'Customer unblocked and access restored!';
+        } else {
+            $error = $lang === 'ar' ? 'فشل إلغاء الحظر.' : 'Failed to unblock customer.';
+        }
     } elseif ($action === 'toggle') {
         $id = (int)($_POST['customer_id'] ?? 0);
         if ($id > 0 && toggleCustomerStatus($conn, $id)) {
@@ -96,7 +110,9 @@ $customers = getCustomers($conn, $filter, $search);
 $allCustomers = getCustomers($conn);
 $activeCount = count(array_filter($allCustomers, fn($c) => $c['status'] === 'active'));
 $expiredCount = count(array_filter($allCustomers, fn($c) => $c['status'] === 'expired'));
-$disabledCount = count(array_filter($allCustomers, fn($c) => $c['status'] === 'disabled'));
+$disabledCount = count(array_filter($allCustomers, fn($c) => in_array($c['status'], ['disabled', 'blocked'], true)));
+$onlineCount = count(array_filter($allCustomers, fn($c) => !empty($c['is_online'])));
+$streamingCount = count(array_filter($allCustomers, fn($c) => !empty($c['is_streaming'])));
 $xtreamCfg = xtream_get_config($conn);
 ?>
 <!DOCTYPE html>
@@ -296,6 +312,22 @@ $xtreamCfg = xtream_get_config($conn);
                 </div>
             </div>
             <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(14,165,233,0.2); color:#38bdf8;">
+                    <i class="fas fa-play"></i>
+                </div>
+                <div>
+                    <div class="stat-val" style="color:#38bdf8;">
+                        <span id="statOnlineCount"><?php echo $onlineCount; ?></span>
+                        <?php if ($streamingCount > 0): ?>
+                            <span class="badge bg-success ms-1" id="statStreamingBadge" style="font-size:0.72rem;vertical-align:middle;">
+                                <i class="fas fa-play me-1" style="font-size:0.6rem;"></i><?php echo $streamingCount; ?> <?php echo $lang === 'ar' ? 'بث' : 'stream'; ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="stat-lbl"><?php echo $lang === 'ar' ? 'متصل / بث مباشر' : 'Streaming / Online'; ?></div>
+                </div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-icon" style="background:rgba(239,68,68,0.2); color:#f87171;">
                     <i class="fas fa-clock"></i>
                 </div>
@@ -322,14 +354,20 @@ $xtreamCfg = xtream_get_config($conn);
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <a href="customers.php" class="pill-btn <?php echo $filter === '' ? 'active' : ''; ?>"><?php echo $lang === 'ar' ? 'الكل' : 'All'; ?> (<?php echo count($allCustomers); ?>)</a>
                 <a href="customers.php?filter=active" class="pill-btn <?php echo $filter === 'active' ? 'active' : ''; ?>"><?php echo $lang === 'ar' ? 'النشطة' : 'Active'; ?> (<?php echo $activeCount; ?>)</a>
+                <a href="customers.php?filter=streaming" class="pill-btn <?php echo $filter === 'streaming' ? 'active' : ''; ?>">
+                    <i class="fas fa-play text-info me-1" style="font-size:0.7rem;"></i> <?php echo $lang === 'ar' ? 'بث مباشر' : 'Streaming'; ?> (<?php echo $streamingCount; ?>)
+                </a>
+                <a href="customers.php?filter=online" class="pill-btn <?php echo $filter === 'online' ? 'active' : ''; ?>">
+                    <i class="fas fa-circle text-success me-1" style="font-size:0.5rem;"></i> <?php echo $lang === 'ar' ? 'متصل' : 'Online'; ?> (<?php echo $onlineCount; ?>)
+                </a>
                 <a href="customers.php?filter=expired" class="pill-btn <?php echo $filter === 'expired' ? 'active' : ''; ?>"><?php echo $lang === 'ar' ? 'المنتهية' : 'Expired'; ?> (<?php echo $expiredCount; ?>)</a>
-                <a href="customers.php?filter=disabled" class="pill-btn <?php echo $filter === 'disabled' ? 'active' : ''; ?>"><?php echo $lang === 'ar' ? 'المعطلة' : 'Disabled'; ?> (<?php echo $disabledCount; ?>)</a>
+                <a href="customers.php?filter=disabled" class="pill-btn <?php echo ($filter === 'disabled' || $filter === 'blocked') ? 'active' : ''; ?>"><?php echo $lang === 'ar' ? 'المحظورة' : 'Blocked'; ?> (<?php echo $disabledCount; ?>)</a>
             </div>
 
             <div class="d-flex align-items-center gap-2">
                 <form method="GET" class="d-flex align-items-center">
                     <?php if ($filter): ?><input type="hidden" name="filter" value="<?php echo htmlspecialchars($filter); ?>"><?php endif; ?>
-                    <input type="text" name="q" class="form-control form-control-sm" style="min-width:180px;" placeholder="<?php echo $lang === 'ar' ? 'بحث عن مشترك...' : 'Search customer...'; ?>" value="<?php echo htmlspecialchars($search); ?>">
+                    <input type="text" name="q" class="form-control form-control-sm" style="min-width:180px;" placeholder="<?php echo $lang === 'ar' ? 'بحث باسم المستخدم...' : 'Search by Username...'; ?>" value="<?php echo htmlspecialchars($search); ?>">
                 </form>
                 <button type="button" class="btn btn-neon d-inline-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
                     <i class="fas fa-user-plus"></i>
@@ -341,7 +379,7 @@ $xtreamCfg = xtream_get_config($conn);
         <!-- Table Card -->
         <div class="cust-table-card">
             <div class="table-responsive">
-                <table class="table">
+                <table class="table align-middle">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -349,15 +387,17 @@ $xtreamCfg = xtream_get_config($conn);
                             <th><?php echo $lang === 'ar' ? 'كلمة المرور' : 'Password'; ?></th>
                             <th><?php echo $lang === 'ar' ? 'الاسم / الملاحظات' : 'Name / Notes'; ?></th>
                             <th><?php echo $lang === 'ar' ? 'تاريخ الانتهاء' : 'Expiry Date'; ?></th>
+                            <th><?php echo $lang === 'ar' ? 'حالة الاتصال' : 'Connection'; ?></th>
                             <th><?php echo $lang === 'ar' ? 'الحالة' : 'Status'; ?></th>
                             <th><?php echo $lang === 'ar' ? 'مزامنة السيرفر' : 'Server Sync'; ?></th>
+                            <th class="text-center"><?php echo $lang === 'ar' ? 'حظر / تفعيل' : 'Block / Unblock'; ?></th>
                             <th class="text-end"><?php echo $lang === 'ar' ? 'إجراءات' : 'Actions'; ?></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($customers)): ?>
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="10" class="text-center py-5 text-muted">
                                     <i class="fas fa-user-slash fa-3x mb-3 d-block opacity-50"></i>
                                     <?php echo $lang === 'ar' ? 'لا يوجد مشتركون حالياً.' : 'No customers found.'; ?>
                                 </td>
@@ -368,9 +408,10 @@ $xtreamCfg = xtream_get_config($conn);
                                     $expTime = strtotime($c['expiry_date']);
                                     $isExp = $expTime <= time();
                                     $daysLeft = (int)ceil(($expTime - time()) / 86400);
-                                    $badgeClass = ($c['status'] === 'disabled') ? 'badge-disabled' : ($isExp ? 'badge-expired' : 'badge-active');
+                                    $isBlocked = in_array($c['status'], ['disabled', 'blocked'], true);
+                                    $badgeClass = $isBlocked ? 'badge-disabled' : ($isExp ? 'badge-expired' : 'badge-active');
                                 ?>
-                                <tr>
+                                <tr data-cust-id="<?php echo $c['id']; ?>">
                                     <td class="text-muted fw-bold">#<?php echo $c['id']; ?></td>
                                     <td>
                                         <div class="fw-bold text-white d-flex align-items-center gap-2">
@@ -396,10 +437,48 @@ $xtreamCfg = xtream_get_config($conn);
                                             <?php echo $daysLeft > 0 ? ($lang === 'ar' ? "متبقي $daysLeft يوم" : "$daysLeft days left") : ($lang === 'ar' ? 'منتهي الصلاحية' : 'Expired'); ?>
                                         </div>
                                     </td>
+                                    <td class="cust-presence-cell" id="cust-presence-<?php echo $c['id']; ?>">
+                                        <?php if (!empty($c['is_streaming'])): ?>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                                <i class="fas fa-play text-success" style="font-size:0.65rem;"></i>
+                                                <span><?php echo $lang === 'ar' ? 'بث مباشر' : 'Streaming'; ?></span>
+                                            </span>
+                                            <div class="small text-info text-truncate mt-1" style="max-width:180px;" title="<?php echo htmlspecialchars($c['watching_title']); ?>">
+                                                <i class="fas fa-tv me-1"></i><?php echo htmlspecialchars($c['watching_title']); ?>
+                                            </div>
+                                        <?php elseif (!empty($c['is_online'])): ?>
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                                                <i class="fas fa-circle text-success" style="font-size:0.5rem;"></i>
+                                                <span><?php echo $lang === 'ar' ? 'متصل حالياً' : 'Online'; ?></span>
+                                            </span>
+                                            <div class="small text-muted mt-1"><?php echo $lang === 'ar' ? 'التطبيق نشط' : 'App Active'; ?></div>
+                                        <?php else: ?>
+                                            <?php
+                                                $lastSeenStr = $lang === 'ar' ? 'غير متصل' : 'Offline';
+                                                if (!empty($c['device_last_seen'])) {
+                                                    $diff = time() - strtotime($c['device_last_seen']);
+                                                    if ($diff < 120) {
+                                                        $lastSeenStr = $lang === 'ar' ? 'قبل دقيقة' : '1m ago';
+                                                    } elseif ($diff < 3600) {
+                                                        $lastSeenStr = floor($diff / 60) . ($lang === 'ar' ? ' دقيقة مضت' : 'm ago');
+                                                    } elseif ($diff < 86400) {
+                                                        $lastSeenStr = floor($diff / 3600) . ($lang === 'ar' ? ' ساعة مضت' : 'h ago');
+                                                    } else {
+                                                        $lastSeenStr = date('Y-m-d', strtotime($c['device_last_seen']));
+                                                    }
+                                                }
+                                            ?>
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1">
+                                                <i class="fas fa-circle text-secondary" style="font-size:0.5rem;"></i>
+                                                <span><?php echo $lang === 'ar' ? 'غير متصل' : 'Offline'; ?></span>
+                                            </span>
+                                            <div class="small text-muted mt-1"><?php echo htmlspecialchars($lastSeenStr); ?></div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <span class="status-badge <?php echo $badgeClass; ?>">
-                                            <i class="fas fa-circle" style="font-size:0.5rem;"></i>
-                                            <?php echo ucfirst($c['status']); ?>
+                                            <i class="fas <?php echo $isBlocked ? 'fa-ban' : 'fa-circle'; ?>" style="font-size:0.5rem;"></i>
+                                            <?php echo $isBlocked ? ($lang === 'ar' ? 'محظور' : 'Blocked') : ucfirst($c['status']); ?>
                                         </span>
                                     </td>
                                     <td>
@@ -416,6 +495,29 @@ $xtreamCfg = xtream_get_config($conn);
                                                     <i class="fas fa-rotate"></i>
                                                 </button>
                                             </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if (!$isBlocked): ?>
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('<?php echo $lang === 'ar' ? 'هل تريد حظر المشترك وتوقيف اتصاله فوراً؟' : 'Block this customer and terminate connection immediately?'; ?>');">
+                                                <?php echo admin_csrf_field(); ?>
+                                                <input type="hidden" name="action" value="block">
+                                                <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1" title="<?php echo $lang === 'ar' ? 'حظر المشترك' : 'Block Customer'; ?>">
+                                                    <i class="fas fa-ban"></i>
+                                                    <span><?php echo $lang === 'ar' ? 'حظر' : 'Block'; ?></span>
+                                                </button>
+                                            </form>
+                                        <?php else: ?>
+                                            <form method="POST" class="d-inline">
+                                                <?php echo admin_csrf_field(); ?>
+                                                <input type="hidden" name="action" value="unblock">
+                                                <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1" title="<?php echo $lang === 'ar' ? 'إلغاء الحظر وتفعيل المشترك' : 'Unblock Customer'; ?>">
+                                                    <i class="fas fa-unlock"></i>
+                                                    <span><?php echo $lang === 'ar' ? 'إلغاء الحظر' : 'Unblock'; ?></span>
+                                                </button>
+                                            </form>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end">
@@ -453,17 +555,6 @@ $xtreamCfg = xtream_get_config($conn);
                                                     <button type="button" class="dropdown-item" onclick="copyM3u('<?php echo htmlspecialchars($xtreamCfg['server_url']); ?>', '<?php echo htmlspecialchars($c['username']); ?>', '<?php echo htmlspecialchars($c['password']); ?>')">
                                                         <i class="fas fa-link text-info me-2"></i> <?php echo $lang === 'ar' ? 'نسخ رابط M3U' : 'Copy M3U Link'; ?>
                                                     </button>
-                                                </li>
-                                                <li>
-                                                    <form method="POST" class="d-inline">
-                                                        <?php echo admin_csrf_field(); ?>
-                                                        <input type="hidden" name="action" value="toggle">
-                                                        <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
-                                                        <button type="submit" class="dropdown-item">
-                                                            <i class="fas <?php echo $c['status'] === 'active' ? 'fa-ban text-warning' : 'fa-check text-success'; ?> me-2"></i>
-                                                            <?php echo $c['status'] === 'active' ? ($lang === 'ar' ? 'تعطيل الحساب' : 'Disable') : ($lang === 'ar' ? 'تفعيل الحساب' : 'Enable'); ?>
-                                                        </button>
-                                                    </form>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
@@ -652,6 +743,59 @@ $xtreamCfg = xtream_get_config($conn);
                     badge.innerText = 'Error';
                 }
             });
+
+        // Real-time presence polling
+        var txtStreaming = <?php echo json_encode($lang === 'ar' ? 'بث مباشر' : 'Streaming'); ?>;
+        var txtOnline = <?php echo json_encode($lang === 'ar' ? 'متصل حالياً' : 'Online'); ?>;
+        var txtOffline = <?php echo json_encode($lang === 'ar' ? 'غير متصل' : 'Offline'); ?>;
+        var txtAppActive = <?php echo json_encode($lang === 'ar' ? 'التطبيق نشط' : 'App Active'); ?>;
+
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        function pollCustomerPresence() {
+            fetch('api/customers_presence.php')
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    if (!data || !data.success) return;
+                    var onlineEl = document.getElementById('statOnlineCount');
+                    if (onlineEl && typeof data.online_count === 'number') {
+                        onlineEl.textContent = data.online_count;
+                    }
+                    if (Array.isArray(data.customers)) {
+                        data.customers.forEach(function(c){
+                            var row = document.querySelector('tr[data-cust-id="' + c.id + '"]');
+                            if (!row) return;
+                            var cell = row.querySelector('.cust-presence-cell');
+                            if (!cell) return;
+
+                            if (c.is_streaming) {
+                                var title = c.watching_title || txtStreaming;
+                                cell.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">' +
+                                    '<i class="fas fa-play text-success" style="font-size:0.65rem;"></i>' +
+                                    '<span>' + txtStreaming + '</span></span>' +
+                                    '<div class="small text-info text-truncate mt-1" style="max-width:180px;" title="' + escapeHtml(title) + '">' +
+                                    '<i class="fas fa-tv me-1"></i>' + escapeHtml(title) + '</div>';
+                            } else if (c.is_online) {
+                                cell.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">' +
+                                    '<i class="fas fa-circle text-success" style="font-size:0.5rem;"></i>' +
+                                    '<span>' + txtOnline + '</span></span>' +
+                                    '<div class="small text-muted mt-1">' + txtAppActive + '</div>';
+                            } else {
+                                cell.innerHTML = '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle d-inline-flex align-items-center gap-1">' +
+                                    '<i class="fas fa-circle text-secondary" style="font-size:0.5rem;"></i>' +
+                                    '<span>' + txtOffline + '</span></span>' +
+                                    '<div class="small text-muted mt-1">' + escapeHtml(c.last_seen) + '</div>';
+                            }
+                        });
+                    }
+                })
+                .catch(function(){});
+        }
+        setInterval(pollCustomerPresence, 8000);
     </script>
 </body>
 </html>
