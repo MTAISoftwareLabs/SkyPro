@@ -36,10 +36,10 @@ if (!$cust) {
     exit;
 }
 
-if (function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
     if ((int)($cust['created_by'] ?? 0) !== (int)$_SESSION['admin_user_id']) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'message' => 'Forbidden: Customer is outside your assigned reseller scope.']);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: Customer is outside your authorized scope.']);
         exit;
     }
 }

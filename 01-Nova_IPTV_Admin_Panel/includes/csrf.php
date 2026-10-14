@@ -114,8 +114,8 @@ if (!function_exists('admin_find_managed_device')) {
             return null;
         }
         try {
-            $isReseller = function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id']);
-            if ($isReseller) {
+            $isIsolated = !empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin());
+            if ($isIsolated) {
                 $stmt = $conn->prepare(
                     "SELECT a.* FROM activated_devices a
                      INNER JOIN iptv_customers c ON (

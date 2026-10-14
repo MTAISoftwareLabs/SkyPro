@@ -59,9 +59,9 @@ function adminUserRowCanDelete(PDO $conn, array $u, int $myId): bool
     }
     $targetRole = (string) ($u['role'] ?? '');
     $isSuper = adminIsSuperAdmin();
-    // أي مستخدم غير super_admin مسموح له فقط بحذف حسابات الموزعين (reseller) أو الزوار
+    // أي مستخدم غير super_admin مسموح له فقط بحذف حسابات الموزعين (reseller) التي أنشأها بنفسه
     if (!$isSuper) {
-        if ($targetRole !== ADMIN_ROLE_RESELLER && $targetRole !== ADMIN_ROLE_VIEWER) {
+        if ($targetRole !== ADMIN_ROLE_RESELLER || (int)($u['created_by'] ?? 0) !== $myId) {
             return false;
         }
     }
@@ -83,7 +83,7 @@ function adminUserRowCanToggle(PDO $conn, array $u, int $myId): bool
     $targetRole = (string) ($u['role'] ?? '');
     $isSuper = adminIsSuperAdmin();
     if (!$isSuper) {
-        if ($targetRole !== ADMIN_ROLE_RESELLER && $targetRole !== ADMIN_ROLE_VIEWER) {
+        if ($targetRole !== ADMIN_ROLE_RESELLER || (int)($u['created_by'] ?? 0) !== $myId) {
             return false;
         }
     }
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($tid === $myId) {
             $msgErr = t('users.error_self_toggle');
         } else {
-            $stmt = $conn->prepare('SELECT id, role, is_active FROM admin_users WHERE id = ? LIMIT 1');
+            $stmt = $conn->prepare('SELECT id, role, is_active, created_by FROM admin_users WHERE id = ? LIMIT 1');
             $stmt->execute([$tid]);
             $u = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$u) {
@@ -222,13 +222,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($tid <= 0 || strlen($newPw) < 8) {
             $msgErr = t('profile.error_short');
         } else {
-            $stmt = $conn->prepare('SELECT id, role FROM admin_users WHERE id = ? LIMIT 1');
+            $stmt = $conn->prepare('SELECT id, role, created_by FROM admin_users WHERE id = ? LIMIT 1');
             $stmt->execute([$tid]);
             $u = $stmt->fetch(PDO::FETCH_ASSOC);
             $targetRole = (string)($u['role'] ?? '');
             if (!$u) {
                 $msgErr = t('msg.db_error');
-            } elseif (!$isSuperAdmin && $targetRole !== ADMIN_ROLE_RESELLER && $targetRole !== ADMIN_ROLE_VIEWER) {
+            } elseif (!$isSuperAdmin && ($targetRole !== ADMIN_ROLE_RESELLER || (int)($u['created_by'] ?? 0) !== $myId)) {
                 $msgErr = t('users.error_no_edit_super');
             } elseif ($targetRole === 'super_admin' && !$isSuperAdmin) {
                 $msgErr = t('users.error_no_edit_super');
@@ -274,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($tid === $myId) {
             $msgErr = t('users.error_self_delete');
         } else {
-            $stmt = $conn->prepare('SELECT id, username, role, is_active FROM admin_users WHERE id = ? LIMIT 1');
+            $stmt = $conn->prepare('SELECT id, username, role, is_active, created_by FROM admin_users WHERE id = ? LIMIT 1');
             $stmt->execute([$tid]);
             $delUser = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$delUser) {
@@ -306,12 +306,14 @@ $users = $conn->query('SELECT u.id, u.username, u.email, u.role, u.is_active, u.
 $hidePrivilegedRows = !$isSuperAdmin;
 if ($hidePrivilegedRows) {
     $users = array_values(array_filter($users, static function ($u) use ($myId) {
-        $role = (string) ($u['role'] ?? '');
         $id = (int) ($u['id'] ?? 0);
         if ($id === (int) $myId) {
             return true;
         }
-        return $role === ADMIN_ROLE_RESELLER || $role === ADMIN_ROLE_VIEWER;
+        $role = (string) ($u['role'] ?? '');
+        $createdBy = (int) ($u['created_by'] ?? 0);
+        // Supervisors can ONLY see the Resellers that they personally created!
+        return ($role === ADMIN_ROLE_RESELLER && $createdBy === (int) $myId);
     }));
 }
 
@@ -1059,7 +1061,7 @@ foreach ($permKeysForLabels as $pk) {
                         <?php 
                             $rowId = (int) $u['id']; 
                             $rowRole = (string) ($u['role'] ?? '');
-                            $canManageRow = $isSuperAdmin || ($isSubAdmin && in_array($rowRole, [ADMIN_ROLE_RESELLER, ADMIN_ROLE_VIEWER], true));
+                            $canManageRow = $isSuperAdmin || ($isSubAdmin && $rowRole === ADMIN_ROLE_RESELLER && (int)($u['created_by'] ?? 0) === $myId);
                         ?>
                         <tr>
                             <td data-label="<?php echo htmlspecialchars(t('users.table_user')); ?>">
@@ -1125,7 +1127,7 @@ foreach ($permKeysForLabels as $pk) {
                                         <?php if (adminUserRowCanToggle($conn, $u, $myId)): ?>
                                         <form method="post"
                                               class="d-inline m-0"
-                                              data-admin-perm="users_manage"
+                                              data-admin-perm="<?php echo $canManageRow ? 'users_create' : 'users_manage'; ?>"
                                               data-admin-confirm
                                               data-confirm-tone="warn"
                                               data-confirm-icon="fas fa-user-gear"
@@ -1158,7 +1160,7 @@ foreach ($permKeysForLabels as $pk) {
                                         <?php if (adminUserRowCanDelete($conn, $u, $myId)): ?>
                                         <form method="post"
                                               class="d-inline m-0"
-                                              data-admin-perm="users_manage"
+                                              data-admin-perm="<?php echo $canManageRow ? 'users_create' : 'users_manage'; ?>"
                                               data-admin-confirm
                                               data-confirm-title="<?php echo htmlspecialchars(t('users.delete_title'), ENT_QUOTES, 'UTF-8'); ?>"
                                               data-confirm-message="<?php echo htmlspecialchars(t('users.delete_confirm'), ENT_QUOTES, 'UTF-8'); ?>"
@@ -1183,7 +1185,7 @@ foreach ($permKeysForLabels as $pk) {
                                             <div class="small fw-semibold mb-2" style="color:#94a3b8;"><?php echo t('users.pw_panel_title'); ?></div>
                                             <form method="post"
                                                   class="d-flex flex-column gap-2"
-                                                  data-admin-perm="users_manage"
+                                                  data-admin-perm="<?php echo $canManageRow ? 'users_create' : 'users_manage'; ?>"
                                                   data-admin-confirm
                                                   data-confirm-tone="warn"
                                                   data-confirm-icon="fas fa-key"

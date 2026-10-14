@@ -447,6 +447,9 @@ $xtreamCfg = xtream_get_config($conn);
                             <th><?php echo $lang === 'ar' ? 'حالة الاتصال' : 'Connection'; ?></th>
                             <th><?php echo $lang === 'ar' ? 'الحالة' : 'Status'; ?></th>
                             <th><?php echo $lang === 'ar' ? 'مزامنة السيرفر' : 'Server Sync'; ?></th>
+                            <?php if (adminIsSuperAdmin()): ?>
+                            <th><?php echo $lang === 'ar' ? 'أنشئ بواسطة' : 'Created By'; ?></th>
+                            <?php endif; ?>
                             <th class="text-center"><?php echo $lang === 'ar' ? 'حظر / تفعيل' : 'Block / Unblock'; ?></th>
                             <th class="text-end"><?php echo $lang === 'ar' ? 'إجراءات' : 'Actions'; ?></th>
                         </tr>
@@ -454,7 +457,7 @@ $xtreamCfg = xtream_get_config($conn);
                     <tbody>
                         <?php if (empty($customers)): ?>
                             <tr>
-                                <td colspan="10" class="text-center py-5 text-muted">
+                                <td colspan="<?php echo adminIsSuperAdmin() ? 11 : 10; ?>" class="text-center py-5 text-muted">
                                     <i class="fas fa-user-slash fa-3x mb-3 d-block opacity-50"></i>
                                     <?php echo $lang === 'ar' ? 'لا يوجد مشتركون حالياً.' : 'No customers found.'; ?>
                                 </td>
@@ -560,6 +563,17 @@ $xtreamCfg = xtream_get_config($conn);
                                             </div>
                                         <?php endif; ?>
                                     </td>
+                                    <?php if (adminIsSuperAdmin()): ?>
+                                    <td data-label="<?php echo $lang === 'ar' ? 'أنشئ بواسطة' : 'Created By'; ?>">
+                                        <?php if (!empty($c['creator_username'])): ?>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                                <i class="fas fa-user-tie me-1"></i><?php echo htmlspecialchars($c['creator_username']); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted small">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <?php endif; ?>
                                     <td class="text-center">
                                         <?php if ($isGuest): ?>
                                             <span class="badge bg-secondary-subtle text-secondary"><?php echo $isBlocked ? ($lang === 'ar' ? 'محظور' : 'Blocked') : ($lang === 'ar' ? 'نشط' : 'Active'); ?></span>

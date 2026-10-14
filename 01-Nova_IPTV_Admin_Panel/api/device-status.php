@@ -44,7 +44,7 @@ $thresholdSeconds = 60; // مدة اعتبار الجهاز متصل حاليً�
 
 try {
     $resellerId = null;
-    if (function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+    if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
         $resellerId = (int)$_SESSION['admin_user_id'];
     }
 

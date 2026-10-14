@@ -70,7 +70,7 @@ function getExpiringSoonDevicesCount(PDO $conn, int $withinDays = 7): int {
     syncExpiredStatus($conn);
     try {
         $resellerId = null;
-        if (function_exists('adminRoleIsReseller') && function_exists('adminSessionRole') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+        if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
             $resellerId = (int)$_SESSION['admin_user_id'];
         }
 
@@ -111,7 +111,7 @@ function getExpiringSoonDevices(PDO $conn, int $withinDays = 7, int $limit = 50)
     syncExpiredStatus($conn);
     try {
         $resellerId = null;
-        if (function_exists('adminRoleIsReseller') && function_exists('adminSessionRole') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+        if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
             $resellerId = (int)$_SESSION['admin_user_id'];
         }
 
@@ -155,7 +155,7 @@ function getActivatedDevices($conn, $search = '') {
     syncExpiredStatus($conn);
     $search = trim((string)$search);
     $resellerId = null;
-    if (function_exists('adminRoleIsReseller') && function_exists('adminSessionRole') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
+    if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
         $resellerId = (int)$_SESSION['admin_user_id'];
     }
 
@@ -1588,9 +1588,9 @@ function createDatabaseTable($conn) {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
         $conn->exec($sql);
 
-        // Ensure sub-admin has users_create permission enabled
+        // Ensure sub-admin and supervisor roles have users_create permission enabled
         try {
-            $insPerm = $conn->prepare("INSERT IGNORE INTO admin_role_permissions (role, permission_key) VALUES ('admin', 'users_create')");
+            $insPerm = $conn->prepare("INSERT IGNORE INTO admin_role_permissions (role, permission_key) VALUES ('admin', 'users_create'), ('moderator', 'users_create')");
             $insPerm->execute();
         } catch (Throwable $e) {}
 
@@ -2466,8 +2466,11 @@ function getCustomers(PDO $conn, string $filter = '', string $search = '', ?int 
     syncExpiredCustomers($conn);
     syncCustomersWithActivatedDevices($conn);
 
-    if ($resellerId === null && function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
-        $resellerId = (int)$_SESSION['admin_user_id'];
+    // Strict Data Isolation: Supervisors and Resellers can only see their own created customers
+    if ($resellerId === null && !empty($_SESSION['admin_user_id'])) {
+        if (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin()) {
+            $resellerId = (int)$_SESSION['admin_user_id'];
+        }
     }
 
     try {
@@ -2569,9 +2572,11 @@ function getCustomerById(PDO $conn, int $id, bool $enforceResellerScope = true):
         if (!$row) {
             return null;
         }
-        if ($enforceResellerScope && function_exists('adminRoleIsReseller') && adminRoleIsReseller(adminSessionRole()) && !empty($_SESSION['admin_user_id'])) {
-            if ((int)($row['created_by'] ?? 0) !== (int)$_SESSION['admin_user_id']) {
-                return null;
+        if ($enforceResellerScope && !empty($_SESSION['admin_user_id'])) {
+            if (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin()) {
+                if ((int)($row['created_by'] ?? 0) !== (int)$_SESSION['admin_user_id']) {
+                    return null;
+                }
             }
         }
         return $row;

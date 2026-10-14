@@ -103,7 +103,7 @@ if (!function_exists('adminBuiltinDefaultRolePermissions')) {
             ],
             ADMIN_ROLE_MODERATOR => [
                 'profile', 'dashboard', 'devices_view', 'devices_add', 'devices_edit',
-                'feedbacks', 'feedbacks_delete', 'expiring',
+                'feedbacks', 'feedbacks_delete', 'expiring', 'users_create',
             ],
             ADMIN_ROLE_RESELLER => [
                 'profile', 'dashboard', 'devices_view', 'devices_add', 'devices_edit', 'expiring',
@@ -304,6 +304,10 @@ if (!function_exists('adminRolePermissions')) {
         // صفحة الإعدادات وأسرار السيرفر والـ API حصرية لمالك النظام الرئيسي (super_admin)
         if ($permission === 'settings') {
             return adminRoleIsSuperAdmin($role);
+        }
+        // المشرفون (المدراء الفرعيون) لهم كامل الصلاحية لإنشاء وفتح حسابات الموزعين
+        if ($permission === 'users_create') {
+            return adminRoleIsSuperAdmin($role) || adminIsSubAdminRole();
         }
         $map = adminRolePermissions();
         $perms = $map[$role] ?? [];
