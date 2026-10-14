@@ -329,8 +329,8 @@ $xtreamCfg = xtream_get_config($conn);
             <div class="alert alert-primary d-flex align-items-center gap-2 mb-3 rounded-4 shadow-sm" style="background:rgba(0,123,255,0.12); border:1px solid rgba(0,123,255,0.3); color:#60a5fa;">
                 <i class="fas fa-user-gear"></i>
                 <div>
-                    <strong><?php echo $lang === 'ar' ? 'صلاحيات الدعم الفني (Technical Staff Scope)' : 'Technical Staff Scope'; ?>:</strong>
-                    <span><?php echo $lang === 'ar' ? 'صلاحيات تقنية لمساعدة العملاء، فحص الاتصال وتعديل البيانات مع مزامنة البث المباشر.' : 'Technical access to support customers, inspect connections, edit profiles and sync with streaming server.'; ?></span>
+                    <strong><?php echo $lang === 'ar' ? 'نطاق المشرف (Supervisor Scope)' : 'Supervisor Scope'; ?>:</strong>
+                    <span><?php echo $lang === 'ar' ? 'أنت تدير مشتركي حسابك المباشر بالإضافة إلى جميع مشتركي الموزعين المسجلين تحت إشرافك.' : 'Managing your direct customers plus all customers belonging to resellers registered under your supervision.'; ?></span>
                 </div>
             </div>
         <?php endif; ?>
@@ -447,7 +447,7 @@ $xtreamCfg = xtream_get_config($conn);
                             <th><?php echo $lang === 'ar' ? 'حالة الاتصال' : 'Connection'; ?></th>
                             <th><?php echo $lang === 'ar' ? 'الحالة' : 'Status'; ?></th>
                             <th><?php echo $lang === 'ar' ? 'مزامنة السيرفر' : 'Server Sync'; ?></th>
-                            <?php if (adminIsSuperAdmin()): ?>
+                            <?php if (adminIsSuperAdmin() || adminIsSubAdminRole()): ?>
                             <th><?php echo $lang === 'ar' ? 'أنشئ بواسطة' : 'Created By'; ?></th>
                             <?php endif; ?>
                             <th class="text-center"><?php echo $lang === 'ar' ? 'حظر / تفعيل' : 'Block / Unblock'; ?></th>
@@ -457,7 +457,7 @@ $xtreamCfg = xtream_get_config($conn);
                     <tbody>
                         <?php if (empty($customers)): ?>
                             <tr>
-                                <td colspan="<?php echo adminIsSuperAdmin() ? 11 : 10; ?>" class="text-center py-5 text-muted">
+                                <td colspan="<?php echo (adminIsSuperAdmin() || adminIsSubAdminRole()) ? 11 : 10; ?>" class="text-center py-5 text-muted">
                                     <i class="fas fa-user-slash fa-3x mb-3 d-block opacity-50"></i>
                                     <?php echo $lang === 'ar' ? 'لا يوجد مشتركون حالياً.' : 'No customers found.'; ?>
                                 </td>
@@ -563,7 +563,7 @@ $xtreamCfg = xtream_get_config($conn);
                                             </div>
                                         <?php endif; ?>
                                     </td>
-                                    <?php if (adminIsSuperAdmin()): ?>
+                                    <?php if (adminIsSuperAdmin() || adminIsSubAdminRole()): ?>
                                     <td data-label="<?php echo $lang === 'ar' ? 'أنشئ بواسطة' : 'Created By'; ?>">
                                         <?php if (!empty($c['creator_username'])): ?>
                                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle">

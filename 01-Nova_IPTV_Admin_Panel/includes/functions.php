@@ -62,6 +62,50 @@ function parse_iptv_expiry_to_mysql_datetime(?string $raw): ?string {
     return date('Y-m-d H:i:s', $ts);
 }
 
+/**
+ * Return array of admin_user IDs whose customers the logged-in user is authorized to see/manage.
+ * - Super admin: returns null (global access to all customers)
+ * - Supervisor (Staff/Admin/Moderator): returns [$myId, ...resellerIdsCreatedByThisSupervisor]
+ *   (Can see and manage their own customers PLUS all customers created by the Resellers they registered)
+ * - Reseller: returns [$myId] (strictly only their own customers)
+ * - Guest/unauthenticated: returns []
+ */
+function adminGetAllowedCustomerCreatorIds(PDO $conn): ?array
+{
+    if (empty($_SESSION['admin_user_id'])) {
+        return [];
+    }
+    if (function_exists('adminIsSuperAdmin') && adminIsSuperAdmin()) {
+        return null; // Global access
+    }
+
+    $myId = (int)$_SESSION['admin_user_id'];
+    $isSupervisor = function_exists('adminIsSubAdminRole') && adminIsSubAdminRole();
+
+    if ($isSupervisor) {
+        $ids = [$myId];
+        try {
+            // Include all resellers registered by this supervisor
+            $stmt = $conn->prepare("SELECT id FROM admin_users WHERE (created_by = ? OR created_by = ?) AND role = 'reseller'");
+            $myUsername = !empty($_SESSION['admin_username']) ? trim((string)$_SESSION['admin_username']) : '';
+            $stmt->execute([$myId, $myUsername]);
+            $resellerIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            if (!empty($resellerIds)) {
+                foreach ($resellerIds as $rid) {
+                    $ridInt = (int)$rid;
+                    if ($ridInt > 0 && !in_array($ridInt, $ids, true)) {
+                        $ids[] = $ridInt;
+                    }
+                }
+            }
+        } catch (Throwable $e) {}
+        return $ids;
+    }
+
+    // Default (e.g. Reseller): strictly their own customers
+    return [$myId];
+}
+
 /** أجهزة نشطة تنتهي خلال N يوماً (تنبيه للأدمن). */
 function getExpiringSoonDevicesCount(PDO $conn, int $withinDays = 7): int {
     if ($withinDays < 1) {
@@ -69,12 +113,13 @@ function getExpiringSoonDevicesCount(PDO $conn, int $withinDays = 7): int {
     }
     syncExpiredStatus($conn);
     try {
-        $resellerId = null;
-        if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
-            $resellerId = (int)$_SESSION['admin_user_id'];
-        }
+        $allowedCreatorIds = adminGetAllowedCustomerCreatorIds($conn);
 
-        if ($resellerId !== null) {
+        if ($allowedCreatorIds !== null) {
+            if (empty($allowedCreatorIds)) {
+                return 0;
+            }
+            $placeholders = implode(',', array_fill(0, count($allowedCreatorIds), '?'));
             $sql = "SELECT COUNT(DISTINCT a.id) FROM activated_devices a
                     INNER JOIN iptv_customers c ON (
                         c.username = a.manual_login_username 
@@ -85,9 +130,10 @@ function getExpiringSoonDevicesCount(PDO $conn, int $withinDays = 7): int {
                     WHERE a.status = 'active' 
                     AND a.expiry_date > NOW() 
                     AND a.expiry_date <= DATE_ADD(NOW(), INTERVAL ? DAY)
-                    AND c.created_by = ?";
+                    AND c.created_by IN ($placeholders)";
+            $params = array_merge([$withinDays], array_map('intval', $allowedCreatorIds));
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$withinDays, $resellerId]);
+            $stmt->execute($params);
             return (int) $stmt->fetchColumn();
         }
 
@@ -110,12 +156,13 @@ function getExpiringSoonDevices(PDO $conn, int $withinDays = 7, int $limit = 50)
     }
     syncExpiredStatus($conn);
     try {
-        $resellerId = null;
-        if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
-            $resellerId = (int)$_SESSION['admin_user_id'];
-        }
+        $allowedCreatorIds = adminGetAllowedCustomerCreatorIds($conn);
 
-        if ($resellerId !== null) {
+        if ($allowedCreatorIds !== null) {
+            if (empty($allowedCreatorIds)) {
+                return [];
+            }
+            $placeholders = implode(',', array_fill(0, count($allowedCreatorIds), '?'));
             $sql = "SELECT DISTINCT a.id, a.device_id, a.device_name, a.expiry_date, a.last_seen_at 
                     FROM activated_devices a
                     INNER JOIN iptv_customers c ON (
@@ -127,11 +174,12 @@ function getExpiringSoonDevices(PDO $conn, int $withinDays = 7, int $limit = 50)
                     WHERE a.status = 'active' 
                     AND a.expiry_date > NOW() 
                     AND a.expiry_date <= DATE_ADD(NOW(), INTERVAL ? DAY)
-                    AND c.created_by = ?
+                    AND c.created_by IN ($placeholders)
                     ORDER BY a.expiry_date ASC
                     LIMIT " . (int) $limit;
+            $params = array_merge([$withinDays], array_map('intval', $allowedCreatorIds));
             $stmt = $conn->prepare($sql);
-            $stmt->execute([$withinDays, $resellerId]);
+            $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
@@ -154,12 +202,13 @@ function getExpiringSoonDevices(PDO $conn, int $withinDays = 7, int $limit = 50)
 function getActivatedDevices($conn, $search = '') {
     syncExpiredStatus($conn);
     $search = trim((string)$search);
-    $resellerId = null;
-    if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
-        $resellerId = (int)$_SESSION['admin_user_id'];
-    }
+    $allowedCreatorIds = adminGetAllowedCustomerCreatorIds($conn);
 
-    if ($resellerId !== null) {
+    if ($allowedCreatorIds !== null) {
+        if (empty($allowedCreatorIds)) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($allowedCreatorIds), '?'));
         if ($search !== '') {
             $like = '%' . $search . '%';
             $stmt = $conn->prepare("SELECT a.*,
@@ -172,7 +221,7 @@ function getActivatedDevices($conn, $search = '') {
                     OR a.account_key = c.username
                 )
                 WHERE (a.status IS NULL OR a.status <> 'deleted')
-                  AND c.created_by = ?
+                  AND c.created_by IN ($placeholders)
                   AND (
                       a.account_display_name LIKE ?
                       OR a.manual_login_username LIKE ?
@@ -181,7 +230,8 @@ function getActivatedDevices($conn, $search = '') {
                       OR a.device_id LIKE ?
                   )
                 ORDER BY a.activation_date DESC");
-            $stmt->execute([$resellerId, $like, $like, $like, $like, $like]);
+            $params = array_merge(array_map('intval', $allowedCreatorIds), [$like, $like, $like, $like, $like]);
+            $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
@@ -195,9 +245,9 @@ function getActivatedDevices($conn, $search = '') {
                 OR a.account_key = c.username
             )
             WHERE (a.status IS NULL OR a.status <> 'deleted')
-              AND c.created_by = ?
+              AND c.created_by IN ($placeholders)
             ORDER BY a.activation_date DESC");
-        $stmt->execute([$resellerId]);
+        $stmt->execute(array_map('intval', $allowedCreatorIds));
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -2466,11 +2516,12 @@ function getCustomers(PDO $conn, string $filter = '', string $search = '', ?int 
     syncExpiredCustomers($conn);
     syncCustomersWithActivatedDevices($conn);
 
-    // Strict Data Isolation: Supervisors and Resellers can only see their own created customers
-    if ($resellerId === null && !empty($_SESSION['admin_user_id'])) {
-        if (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin()) {
-            $resellerId = (int)$_SESSION['admin_user_id'];
-        }
+    // Strict Data Isolation: Supervisors see their own customers + their registered resellers' customers. Resellers see only their customers.
+    $allowedCreatorIds = null;
+    if ($resellerId !== null && $resellerId > 0) {
+        $allowedCreatorIds = [$resellerId];
+    } else {
+        $allowedCreatorIds = adminGetAllowedCustomerCreatorIds($conn);
     }
 
     try {
@@ -2518,15 +2569,15 @@ function getCustomers(PDO $conn, string $filter = '', string $search = '', ?int 
                 WHERE 1=1";
 
         $params = [];
-        if ($resellerId !== null && $resellerId > 0) {
-            $creatorUsername = !empty($_SESSION['admin_username']) ? trim((string)$_SESSION['admin_username']) : '';
-            if ($creatorUsername !== '') {
-                $sql .= " AND (c.created_by = ? OR u.username = ?)";
-                $params[] = $resellerId;
-                $params[] = $creatorUsername;
+        if ($allowedCreatorIds !== null) {
+            if (empty($allowedCreatorIds)) {
+                $sql .= " AND 1=0";
             } else {
-                $sql .= " AND c.created_by = ?";
-                $params[] = $resellerId;
+                $placeholders = implode(',', array_fill(0, count($allowedCreatorIds), '?'));
+                $sql .= " AND c.created_by IN ($placeholders)";
+                foreach ($allowedCreatorIds as $aid) {
+                    $params[] = (int)$aid;
+                }
             }
         }
 
@@ -2557,9 +2608,11 @@ function getCustomers(PDO $conn, string $filter = '', string $search = '', ?int 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (Throwable $e) {
         try {
-            if ($resellerId !== null && $resellerId > 0) {
-                $stmt = $conn->prepare("SELECT * FROM iptv_customers WHERE created_by = ? ORDER BY id DESC");
-                $stmt->execute([$resellerId]);
+            if ($allowedCreatorIds !== null) {
+                if (empty($allowedCreatorIds)) return [];
+                $placeholders = implode(',', array_fill(0, count($allowedCreatorIds), '?'));
+                $stmt = $conn->prepare("SELECT * FROM iptv_customers WHERE created_by IN ($placeholders) ORDER BY id DESC");
+                $stmt->execute(array_map('intval', $allowedCreatorIds));
                 return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
             }
             $stmt = $conn->query("SELECT * FROM iptv_customers ORDER BY id DESC");
@@ -2583,12 +2636,10 @@ function getCustomerById(PDO $conn, int $id, bool $enforceResellerScope = true):
             return null;
         }
         if ($enforceResellerScope && !empty($_SESSION['admin_user_id'])) {
-            if (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin()) {
-                $myId = (int)$_SESSION['admin_user_id'];
-                $myUsername = !empty($_SESSION['admin_username']) ? trim((string)$_SESSION['admin_username']) : '';
+            $allowedIds = adminGetAllowedCustomerCreatorIds($conn);
+            if ($allowedIds !== null) {
                 $custCreatorId = (int)($row['created_by'] ?? 0);
-                $custCreatorUser = trim((string)($row['creator_username'] ?? ''));
-                if ($custCreatorId !== $myId && ($myUsername === '' || $custCreatorUser !== $myUsername)) {
+                if (!in_array($custCreatorId, $allowedIds, true)) {
                     return null;
                 }
             }

@@ -36,8 +36,9 @@ if (!$cust) {
     exit;
 }
 
-if (!empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin())) {
-    if ((int)($cust['created_by'] ?? 0) !== (int)$_SESSION['admin_user_id']) {
+$allowedIds = function_exists('adminGetAllowedCustomerCreatorIds') ? adminGetAllowedCustomerCreatorIds($conn) : null;
+if ($allowedIds !== null) {
+    if (!in_array((int)($cust['created_by'] ?? 0), $allowedIds, true)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Forbidden: Customer is outside your authorized scope.']);
         exit;

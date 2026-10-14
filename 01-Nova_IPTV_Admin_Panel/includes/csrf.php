@@ -114,8 +114,12 @@ if (!function_exists('admin_find_managed_device')) {
             return null;
         }
         try {
-            $isIsolated = !empty($_SESSION['admin_user_id']) && (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin());
-            if ($isIsolated) {
+            $allowedCreatorIds = function_exists('adminGetAllowedCustomerCreatorIds') ? adminGetAllowedCustomerCreatorIds($conn) : null;
+            if ($allowedCreatorIds !== null) {
+                if (empty($allowedCreatorIds)) {
+                    return null;
+                }
+                $placeholders = implode(',', array_fill(0, count($allowedCreatorIds), '?'));
                 $stmt = $conn->prepare(
                     "SELECT a.* FROM activated_devices a
                      INNER JOIN iptv_customers c ON (
@@ -126,10 +130,11 @@ if (!function_exists('admin_find_managed_device')) {
                      )
                      WHERE a.id = ?
                        AND (a.status IS NULL OR a.status <> 'deleted')
-                       AND c.created_by = ?
+                       AND c.created_by IN ($placeholders)
                      LIMIT 1"
                 );
-                $stmt->execute([$id, (int)$_SESSION['admin_user_id']]);
+                $params = array_merge([$id], array_map('intval', $allowedCreatorIds));
+                $stmt->execute($params);
             } else {
                 $stmt = $conn->prepare(
                     "SELECT * FROM activated_devices
