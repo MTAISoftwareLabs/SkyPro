@@ -407,6 +407,14 @@ if (!function_exists('adminRolePermissions')) {
         foreach (adminClientPermissionKeys() as $k) {
             $out[$k] = adminCan($k);
         }
+        if (adminIsSuperAdmin() || adminIsSubAdminRole()) {
+            $out['users_create'] = true;
+            $out['devices_add'] = true;
+            $out['devices_edit'] = true;
+            $out['devices_view'] = true;
+            $out['dashboard'] = true;
+            $out['expiring'] = true;
+        }
         return $out;
     }
 }

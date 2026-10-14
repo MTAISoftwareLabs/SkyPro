@@ -2519,8 +2519,15 @@ function getCustomers(PDO $conn, string $filter = '', string $search = '', ?int 
 
         $params = [];
         if ($resellerId !== null && $resellerId > 0) {
-            $sql .= " AND c.created_by = ?";
-            $params[] = $resellerId;
+            $creatorUsername = !empty($_SESSION['admin_username']) ? trim((string)$_SESSION['admin_username']) : '';
+            if ($creatorUsername !== '') {
+                $sql .= " AND (c.created_by = ? OR u.username = ?)";
+                $params[] = $resellerId;
+                $params[] = $creatorUsername;
+            } else {
+                $sql .= " AND c.created_by = ?";
+                $params[] = $resellerId;
+            }
         }
 
         if ($filter === 'active') {
@@ -2566,7 +2573,10 @@ function getCustomers(PDO $conn, string $filter = '', string $search = '', ?int 
 function getCustomerById(PDO $conn, int $id, bool $enforceResellerScope = true): ?array
 {
     try {
-        $stmt = $conn->prepare("SELECT * FROM iptv_customers WHERE id = ? LIMIT 1");
+        $stmt = $conn->prepare("SELECT c.*, u.username AS creator_username 
+            FROM iptv_customers c 
+            LEFT JOIN admin_users u ON c.created_by = u.id 
+            WHERE c.id = ? LIMIT 1");
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
         if (!$row) {
@@ -2574,7 +2584,11 @@ function getCustomerById(PDO $conn, int $id, bool $enforceResellerScope = true):
         }
         if ($enforceResellerScope && !empty($_SESSION['admin_user_id'])) {
             if (!function_exists('adminIsSuperAdmin') || !adminIsSuperAdmin()) {
-                if ((int)($row['created_by'] ?? 0) !== (int)$_SESSION['admin_user_id']) {
+                $myId = (int)$_SESSION['admin_user_id'];
+                $myUsername = !empty($_SESSION['admin_username']) ? trim((string)$_SESSION['admin_username']) : '';
+                $custCreatorId = (int)($row['created_by'] ?? 0);
+                $custCreatorUser = trim((string)($row['creator_username'] ?? ''));
+                if ($custCreatorId !== $myId && ($myUsername === '' || $custCreatorUser !== $myUsername)) {
                     return null;
                 }
             }

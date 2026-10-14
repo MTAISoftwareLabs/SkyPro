@@ -61,7 +61,10 @@ function adminUserRowCanDelete(PDO $conn, array $u, int $myId): bool
     $isSuper = adminIsSuperAdmin();
     // أي مستخدم غير super_admin مسموح له فقط بحذف حسابات الموزعين (reseller) التي أنشأها بنفسه
     if (!$isSuper) {
-        if ($targetRole !== ADMIN_ROLE_RESELLER || (int)($u['created_by'] ?? 0) !== $myId) {
+        $myUsername = !empty($_SESSION['admin_username']) ? trim((string)$_SESSION['admin_username']) : '';
+        $createdBy = (int) ($u['created_by'] ?? 0);
+        $creatorName = trim((string)($u['creator_username'] ?? ''));
+        if ($targetRole !== ADMIN_ROLE_RESELLER || ($createdBy !== $myId && ($myUsername === '' || $creatorName !== $myUsername))) {
             return false;
         }
     }
@@ -83,7 +86,10 @@ function adminUserRowCanToggle(PDO $conn, array $u, int $myId): bool
     $targetRole = (string) ($u['role'] ?? '');
     $isSuper = adminIsSuperAdmin();
     if (!$isSuper) {
-        if ($targetRole !== ADMIN_ROLE_RESELLER || (int)($u['created_by'] ?? 0) !== $myId) {
+        $myUsername = !empty($_SESSION['admin_username']) ? trim((string)$_SESSION['admin_username']) : '';
+        $createdBy = (int) ($u['created_by'] ?? 0);
+        $creatorName = trim((string)($u['creator_username'] ?? ''));
+        if ($targetRole !== ADMIN_ROLE_RESELLER || ($createdBy !== $myId && ($myUsername === '' || $creatorName !== $myUsername))) {
             return false;
         }
     }
@@ -305,15 +311,18 @@ $users = $conn->query('SELECT u.id, u.username, u.email, u.role, u.is_active, u.
  */
 $hidePrivilegedRows = !$isSuperAdmin;
 if ($hidePrivilegedRows) {
-    $users = array_values(array_filter($users, static function ($u) use ($myId) {
+    $myId = (int) $myId;
+    $myUsername = !empty($_SESSION['admin_username']) ? trim((string)$_SESSION['admin_username']) : '';
+    $users = array_values(array_filter($users, static function ($u) use ($myId, $myUsername) {
         $id = (int) ($u['id'] ?? 0);
-        if ($id === (int) $myId) {
+        if ($id === $myId) {
             return true;
         }
         $role = (string) ($u['role'] ?? '');
         $createdBy = (int) ($u['created_by'] ?? 0);
-        // Supervisors can ONLY see the Resellers that they personally created!
-        return ($role === ADMIN_ROLE_RESELLER && $createdBy === (int) $myId);
+        $creatorName = trim((string)($u['creator_username'] ?? ''));
+        // Supervisor A can ONLY see/manage Resellers created by Supervisor A (matched by user id or username)
+        return ($role === ADMIN_ROLE_RESELLER && ($createdBy === $myId || ($myUsername !== '' && $creatorName === $myUsername)));
     }));
 }
 
@@ -973,7 +982,7 @@ foreach ($permKeysForLabels as $pk) {
             <?php if (!$canCreateUsers && adminIsGuestRole()): ?>
             <?php require_once __DIR__ . '/includes/view_only_banner.php'; ?>
             <?php endif; ?>
-            <form method="post" class="mt-1" data-admin-perm="users_create">
+            <form method="post" class="mt-1" <?php echo !$canCreateUsers ? 'data-admin-perm="users_create"' : ''; ?>>
                 <input type="hidden" name="admin_op" value="add">
                 <fieldset <?php echo $canCreateUsers ? '' : 'disabled'; ?> style="border:0;padding:0;margin:0;min-width:0;">
                 <div class="row g-3 align-items-end">
@@ -1127,7 +1136,7 @@ foreach ($permKeysForLabels as $pk) {
                                         <?php if (adminUserRowCanToggle($conn, $u, $myId)): ?>
                                         <form method="post"
                                               class="d-inline m-0"
-                                              data-admin-perm="<?php echo $canManageRow ? 'users_create' : 'users_manage'; ?>"
+                                              <?php echo !$canManageRow ? 'data-admin-perm="users_manage"' : ''; ?>
                                               data-admin-confirm
                                               data-confirm-tone="warn"
                                               data-confirm-icon="fas fa-user-gear"
@@ -1160,7 +1169,7 @@ foreach ($permKeysForLabels as $pk) {
                                         <?php if (adminUserRowCanDelete($conn, $u, $myId)): ?>
                                         <form method="post"
                                               class="d-inline m-0"
-                                              data-admin-perm="<?php echo $canManageRow ? 'users_create' : 'users_manage'; ?>"
+                                              <?php echo !$canManageRow ? 'data-admin-perm="users_manage"' : ''; ?>
                                               data-admin-confirm
                                               data-confirm-title="<?php echo htmlspecialchars(t('users.delete_title'), ENT_QUOTES, 'UTF-8'); ?>"
                                               data-confirm-message="<?php echo htmlspecialchars(t('users.delete_confirm'), ENT_QUOTES, 'UTF-8'); ?>"
@@ -1185,7 +1194,7 @@ foreach ($permKeysForLabels as $pk) {
                                             <div class="small fw-semibold mb-2" style="color:#94a3b8;"><?php echo t('users.pw_panel_title'); ?></div>
                                             <form method="post"
                                                   class="d-flex flex-column gap-2"
-                                                  data-admin-perm="<?php echo $canManageRow ? 'users_create' : 'users_manage'; ?>"
+                                                  <?php echo !$canManageRow ? 'data-admin-perm="users_manage"' : ''; ?>
                                                   data-admin-confirm
                                                   data-confirm-tone="warn"
                                                   data-confirm-icon="fas fa-key"
