@@ -2,8 +2,8 @@
 # If a device crashes only in release, add -keep for that package and rebuild.
 
 # --- App entry / license gate ---
--keep class com.novaiptviptv.player.MainActivity { *; }
--keep class com.novaiptviptv.player.LicenseNativeGate { *; }
+-keep class com.skypro.app.MainActivity { *; }
+-keep class com.skypro.app.LicenseNativeGate { *; }
 
 # --- Flutter ---
 -keep class io.flutter.app.** { *; }

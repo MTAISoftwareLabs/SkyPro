@@ -1,4 +1,4 @@
-package com.novaiptviptv.player
+package com.skypro.app
 
 import android.app.Application
 import android.content.Context

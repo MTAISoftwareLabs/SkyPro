@@ -89,7 +89,7 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.novaiptviptv.player" "\0"
+            VALUE "CompanyName", "com.skypro.app" "\0"
             VALUE "FileDescription", "Flixtra Play" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "NovaIPTVPlayer" "\0"

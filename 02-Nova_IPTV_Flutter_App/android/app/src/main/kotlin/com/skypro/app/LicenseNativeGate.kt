@@ -1,4 +1,4 @@
-package com.novaiptviptv.player
+package com.skypro.app
 
 import android.util.Base64
 import org.json.JSONObject
