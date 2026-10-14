@@ -1594,6 +1594,7 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                         final allowUsernameLogin = true;
                         const tvKeypadMode = false;
                         const showMethodsGrid = false;
+                        final hPad = isTvDevice ? 36.0 : 20.0;
                         final screenW = MediaQuery.sizeOf(context).width;
                         final cardMaxWidth = showMethodsGrid
                             ? (screenW - hPad * 2).clamp(720.0, 1400.0)
