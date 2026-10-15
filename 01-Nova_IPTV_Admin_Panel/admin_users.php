@@ -582,6 +582,38 @@ foreach ($permKeysForLabels as $pk) {
             color: #cbd5e1 !important;
         }
 
+        .pill-btn {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            color: #94a3b8;
+            padding: 8px 18px;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+        }
+        .pill-btn:hover {
+            color: #fff;
+            border-color: rgba(56, 189, 248, 0.4);
+            background: rgba(56, 189, 248, 0.08);
+        }
+        .pill-btn.active {
+            background: #2563eb;
+            border-color: #38bdf8;
+            color: #fff;
+            box-shadow: 0 0 14px rgba(37, 99, 235, 0.45);
+        }
+        .staff-col-symbol {
+            width: 50px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.15rem;
+            color: #38bdf8;
+        }
+
         .staff-col-actions { min-width: 200px; }
         .staff-actions-cell { vertical-align: middle !important; }
         .staff-actions-rail {
@@ -1041,38 +1073,49 @@ foreach ($permKeysForLabels as $pk) {
         </div>
     </div>
 
-    <!-- Section 2: Team list -->
-    <div class="staff-card">
-        <div class="staff-card__body">
-            <div class="staff-card__head">
-                <div>
-                    <h2 class="staff-card__title"><i class="fas fa-people-group"></i><?php echo t('users.section_team'); ?></h2>
-                    <p class="staff-card__hint"><?php echo t('users.section_team_hint'); ?></p>
-                </div>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-staff table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th><?php echo t('users.table_user'); ?></th>
-                            <th><?php echo t('users.table_email'); ?></th>
-                            <th><?php echo t('users.table_role'); ?></th>
-                            <th><?php echo t('users.table_status'); ?></th>
-                            <th><?php echo t('users.table_last_login'); ?></th>
-                            <?php if ($isSuperAdmin): ?>
-                            <th><?php echo $lang === 'ar' ? 'أنشئ بواسطة' : 'Created By'; ?></th>
-                            <?php endif; ?>
-                            <th class="staff-col-actions text-lg-end"><?php echo t('users.table_actions'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($users as $u): ?>
+    <?php
+    /**
+     * Helper function to render a user table with a category-specific top header column symbol:
+     * - '+' for the Supervisors Table
+     * - '*' for the Resellers Table
+     * - '#' remains strictly for the Customers Table in customers.php
+     */
+    function renderStaffCategoryTable(array $list, string $headerSymbol, bool $isSuperAdmin, bool $isSubAdmin, int $myId, PDO $conn, string $lang, array $allowedRoles, string $emptyMsg): void {
+    ?>
+        <div class="table-responsive">
+            <table class="table table-staff table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="staff-col-symbol text-center" style="width:50px;"><?php echo htmlspecialchars($headerSymbol); ?></th>
+                        <th><?php echo t('users.table_user'); ?></th>
+                        <th><?php echo t('users.table_email'); ?></th>
+                        <th><?php echo t('users.table_role'); ?></th>
+                        <th><?php echo t('users.table_status'); ?></th>
+                        <th><?php echo t('users.table_last_login'); ?></th>
+                        <?php if ($isSuperAdmin): ?>
+                        <th><?php echo $lang === 'ar' ? 'أنشئ بواسطة' : 'Created By'; ?></th>
+                        <?php endif; ?>
+                        <th class="staff-col-actions text-lg-end"><?php echo t('users.table_actions'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if (empty($list)): ?>
+                    <tr>
+                        <td colspan="<?php echo $isSuperAdmin ? 8 : 7; ?>" class="text-center py-4 text-muted">
+                            <i class="fas fa-user-slash fa-2x mb-2 d-block opacity-50"></i>
+                            <?php echo htmlspecialchars($emptyMsg); ?>
+                        </td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($list as $u): ?>
                         <?php 
                             $rowId = (int) $u['id']; 
                             $rowRole = (string) ($u['role'] ?? '');
                             $canManageRow = $isSuperAdmin || ($isSubAdmin && $rowRole === ADMIN_ROLE_RESELLER && (int)($u['created_by'] ?? 0) === $myId);
+                            $collapseId = 'staffPw' . $rowId . '_' . ($headerSymbol === '+' ? 'sup' : 'res');
                         ?>
                         <tr>
+                            <td class="text-muted fw-bold text-center staff-col-symbol" data-label="<?php echo htmlspecialchars($headerSymbol); ?>">#<?php echo $rowId; ?></td>
                             <td data-label="<?php echo htmlspecialchars(t('users.table_user')); ?>">
                                 <div class="d-flex align-items-center flex-wrap gap-1">
                                     <strong><?php echo htmlspecialchars($u['username']); ?></strong>
@@ -1159,8 +1202,8 @@ foreach ($permKeysForLabels as $pk) {
                                         </form>
                                         <?php endif; ?>
                                         <button type="button" class="staff-act-btn staff-act-key"
-                                                data-bs-toggle="collapse" data-bs-target="#staffPw<?php echo $rowId; ?>"
-                                                aria-expanded="false" aria-controls="staffPw<?php echo $rowId; ?>"
+                                                data-bs-toggle="collapse" data-bs-target="#<?php echo $collapseId; ?>"
+                                                aria-expanded="false" aria-controls="<?php echo $collapseId; ?>"
                                                 title="<?php echo htmlspecialchars(t('users.btn_reset_pass')); ?>"
                                                 <?php echo $canManageRow ? '' : 'disabled'; ?>>
                                             <i class="fas fa-key"></i>
@@ -1189,7 +1232,7 @@ foreach ($permKeysForLabels as $pk) {
                                         </form>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="collapse staff-pw-collapse" id="staffPw<?php echo $rowId; ?>">
+                                    <div class="collapse staff-pw-collapse" id="<?php echo $collapseId; ?>">
                                         <div class="staff-pw-panel">
                                             <div class="small fw-semibold mb-2" style="color:#94a3b8;"><?php echo t('users.pw_panel_title'); ?></div>
                                             <form method="post"
@@ -1222,11 +1265,128 @@ foreach ($permKeysForLabels as $pk) {
                             </td>
                         </tr>
                     <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php
+    }
+    ?>
+
+    <!-- Section 2: Team list with category-based tables -->
+    <?php if ($isSuperAdmin): ?>
+        <?php
+            $supervisorsUsers = array_values(array_filter($users, static function ($u) {
+                return ($u['role'] ?? '') !== ADMIN_ROLE_RESELLER;
+            }));
+            $resellersUsers = array_values(array_filter($users, static function ($u) {
+                return ($u['role'] ?? '') === ADMIN_ROLE_RESELLER;
+            }));
+        ?>
+        <div class="staff-card mb-4">
+            <div class="staff-card__body">
+                <div class="staff-card__head mb-3">
+                    <div>
+                        <h2 class="staff-card__title"><i class="fas fa-people-group"></i><?php echo t('users.section_team'); ?></h2>
+                        <p class="staff-card__hint"><?php echo t('users.section_team_hint'); ?></p>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                    <ul class="nav nav-pills gap-2" id="categoryTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="pill-btn active d-inline-flex align-items-center gap-2" id="tab-supervisors" data-bs-toggle="pill" data-bs-target="#pane-supervisors" type="button" role="tab" style="cursor:pointer;">
+                                <i class="fas fa-user-shield text-primary"></i>
+                                <span><?php echo $lang === 'ar' ? 'جدول المشرفين (Supervisors)' : 'Supervisors Table'; ?></span>
+                                <span class="badge rounded-pill bg-primary ms-1" style="font-size:0.75rem;">+ (<?php echo count($supervisorsUsers); ?>)</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="pill-btn d-inline-flex align-items-center gap-2" id="tab-resellers" data-bs-toggle="pill" data-bs-target="#pane-resellers" type="button" role="tab" style="cursor:pointer;">
+                                <i class="fas fa-handshake text-info"></i>
+                                <span><?php echo $lang === 'ar' ? 'جدول الموزعين (Resellers)' : 'Resellers Table'; ?></span>
+                                <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size:0.75rem;">* (<?php echo count($resellersUsers); ?>)</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="pill-btn d-inline-flex align-items-center gap-2" id="tab-all" data-bs-toggle="pill" data-bs-target="#pane-all" type="button" role="tab" style="cursor:pointer;">
+                                <i class="fas fa-layer-group"></i>
+                                <span><?php echo $lang === 'ar' ? 'عرض كلا الجدولين' : 'Show Both Tables'; ?></span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="tab-content" id="categoryTabContent">
+                    <!-- 1. Supervisors Table: Top header column symbol is '+' -->
+                    <div class="tab-pane fade show active" id="pane-supervisors" role="tabpanel">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h3 class="fs-6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                                <i class="fas fa-user-shield text-primary"></i>
+                                <span><?php echo $lang === 'ar' ? 'جدول المشرفين والمدراء' : 'Supervisors & Staff Table'; ?></span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">+</span>
+                            </h3>
+                            <span class="small text-muted"><?php echo count($supervisorsUsers); ?> <?php echo $lang === 'ar' ? 'مشرف' : 'supervisors'; ?></span>
+                        </div>
+                        <?php renderStaffCategoryTable($supervisorsUsers, '+', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد مشرفون مسجلون حالياً.' : 'No supervisors found.'); ?>
+                    </div>
+
+                    <!-- 2. Resellers Table: Top header column symbol is '*' -->
+                    <div class="tab-pane fade" id="pane-resellers" role="tabpanel">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h3 class="fs-6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                                <i class="fas fa-handshake text-info"></i>
+                                <span><?php echo $lang === 'ar' ? 'جدول الموزعين المعزولين' : 'Isolated Resellers Table'; ?></span>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle fs-6">*</span>
+                            </h3>
+                            <span class="small text-muted"><?php echo count($resellersUsers); ?> <?php echo $lang === 'ar' ? 'موزع' : 'resellers'; ?></span>
+                        </div>
+                        <?php renderStaffCategoryTable($resellersUsers, '*', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد موزعون مسجلون حالياً.' : 'No resellers found.'); ?>
+                    </div>
+
+                    <!-- Both Tables View -->
+                    <div class="tab-pane fade" id="pane-all" role="tabpanel">
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h3 class="fs-6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                                    <i class="fas fa-user-shield text-primary"></i>
+                                    <span><?php echo $lang === 'ar' ? 'جدول المشرفين والمدراء (رمز العمود الأول: +)' : 'Supervisors Table (Header Column: +)'; ?></span>
+                                </h3>
+                            </div>
+                            <?php renderStaffCategoryTable($supervisorsUsers, '+', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد مشرفون مسجلون حالياً.' : 'No supervisors found.'); ?>
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h3 class="fs-6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
+                                    <i class="fas fa-handshake text-info"></i>
+                                    <span><?php echo $lang === 'ar' ? 'جدول الموزعين (رمز العمود الأول: *)' : 'Resellers Table (Header Column: *)'; ?></span>
+                                </h3>
+                            </div>
+                            <?php renderStaffCategoryTable($resellersUsers, '*', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد موزعون مسجلون حالياً.' : 'No resellers found.'); ?>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    <?php else: ?>
+        <!-- For Supervisors: They only manage Resellers, so this is strictly the Resellers Table -->
+        <div class="staff-card mb-4">
+            <div class="staff-card__body">
+                <div class="staff-card__head mb-3">
+                    <div>
+                        <h2 class="staff-card__title">
+                            <i class="fas fa-handshake text-info"></i>
+                            <span><?php echo $lang === 'ar' ? 'جدول الموزعين التابعين لك (Resellers)' : 'Your Resellers Table'; ?></span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle ms-2">*</span>
+                        </h2>
+                        <p class="staff-card__hint"><?php echo $lang === 'ar' ? 'قائمة حسابات الموزعين التي قمت بإنشائها والإشراف عليها.' : 'List of reseller accounts created and supervised by your account.'; ?></p>
+                    </div>
+                </div>
+                <!-- Resellers Table: Top header column symbol is '*' -->
+                <?php renderStaffCategoryTable($users, '*', false, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لم تقم بإنشاء أي موزع حتى الآن.' : 'No resellers created yet under your account.'); ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <?php if (adminIsSuperAdmin()): ?>
     <!-- Section 3: Advanced role permissions (bottom, collapsed) -->
