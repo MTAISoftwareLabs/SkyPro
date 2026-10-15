@@ -13,7 +13,8 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  font_awesome_flutter: 10.12.0
+  font_awesome_flutter:
+    path: packages/font_awesome_flutter
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
   responsive_sizer: ^3.3.1
