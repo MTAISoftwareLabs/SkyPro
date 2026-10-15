@@ -78,6 +78,17 @@ class AppTranslations extends Translations {
       'legal_invalid_link':
           'رابط السياسة غير صالح. راجع الإعداد في لوحة التحكم.',
 
+      // فحص لوحة التحكم عند الإقلاع
+      'splash_checking_activation': 'جاري التحقق من التفعيل...',
+      'splash_panel_offline_title': 'تعذر الاتصال بالسيرفر',
+      'splash_panel_offline_subtitle': 'يرجى التحقق من اتصال الإنترنت ثم إعادة المحاولة.',
+      'splash_panel_clock_title': 'تاريخ الجهاز غير صحيح',
+      'splash_panel_clock_subtitle': 'يرجى ضبط تاريخ ووقت الجهاز بشكل صحيح ثم المحاولة مجدداً.',
+      'splash_panel_auth_title': 'خطأ في مصادقة اللوحة',
+      'splash_panel_auth_subtitle': 'فشلت مصادقة التطبيق مع لوحة التحكم. تأكد من إعدادات اللوحة.',
+      'splash_panel_error_title': 'حدث خطأ غير متوقع',
+      'splash_panel_error_subtitle': 'تعذر استكمال الاتصال باللوحة. يرجى المحاولة مرة أخرى.',
+
       // ترخيص السورس (CodeCanyon)
       'license_invalid_title': 'الترخيص غير صالح',
       'license_invalid_subtitle':
@@ -915,6 +926,17 @@ class AppTranslations extends Translations {
           'About us content is not configured in the control panel yet.',
       'legal_invalid_link':
           'Privacy policy URL is invalid. Check the control panel setting.',
+
+      // Panel splash checks
+      'splash_checking_activation': 'Checking activation...',
+      'splash_panel_offline_title': 'Could not connect to server',
+      'splash_panel_offline_subtitle': 'Please check your internet connection and try again.',
+      'splash_panel_clock_title': 'Device clock is incorrect',
+      'splash_panel_clock_subtitle': 'Please adjust your device date and time correctly and try again.',
+      'splash_panel_auth_title': 'Panel Authentication Error',
+      'splash_panel_auth_subtitle': 'App authentication failed with control panel. Please verify API settings.',
+      'splash_panel_error_title': 'An unexpected error occurred',
+      'splash_panel_error_subtitle': 'Could not complete connection to panel. Please try again.',
 
       'license_invalid_title': 'License not valid',
       'license_invalid_subtitle':

@@ -34,4 +34,4 @@ String licenseBoundPanelHost() {
 /// (must match `settings.app_api_secret` on the **same** panel as the URL above).
 /// Ship empty for CodeCanyon; each buyer pastes their own secret before release builds.
 const String kAppApiSecret =
-    'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+    'a72dce580870efab7b5f2381e7abfa637b878dd6af7f1270765198475c11c8b6';
