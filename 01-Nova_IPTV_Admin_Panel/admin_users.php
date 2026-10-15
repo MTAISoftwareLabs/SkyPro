@@ -300,6 +300,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$search = trim((string)($_GET['q'] ?? ''));
+
 $users = $conn->query('SELECT u.id, u.username, u.email, u.role, u.is_active, u.created_by, u.last_login_at, creator.username AS creator_username 
     FROM admin_users u 
     LEFT JOIN admin_users creator ON u.created_by = creator.id 
@@ -323,6 +325,15 @@ if ($hidePrivilegedRows) {
         $creatorName = trim((string)($u['creator_username'] ?? ''));
         // Supervisor A can ONLY see/manage Resellers created by Supervisor A (matched by user id or username)
         return ($role === ADMIN_ROLE_RESELLER && ($createdBy === $myId || ($myUsername !== '' && $creatorName === $myUsername)));
+    }));
+}
+
+if ($search !== '') {
+    $users = array_values(array_filter($users, static function ($u) use ($search) {
+        $uname = (string)($u['username'] ?? '');
+        $email = (string)($u['email'] ?? '');
+        $creator = (string)($u['creator_username'] ?? '');
+        return (stripos($uname, $search) !== false || stripos($email, $search) !== false || stripos($creator, $search) !== false);
     }));
 }
 
@@ -1113,12 +1124,15 @@ foreach ($permKeysForLabels as $pk) {
                             $rowRole = (string) ($u['role'] ?? '');
                             $canManageRow = $isSuperAdmin || ($isSubAdmin && $rowRole === ADMIN_ROLE_RESELLER && (int)($u['created_by'] ?? 0) === $myId);
                             $collapseId = 'staffPw' . $rowId . '_' . ($headerSymbol === '+' ? 'sup' : 'res');
+                            $uname = (string)($u['username'] ?? '');
+                            $uemail = (string)($u['email'] ?? '');
+                            $ucreator = (string)($u['creator_username'] ?? '');
                         ?>
-                        <tr>
+                        <tr class="staff-user-row" data-username="<?php echo htmlspecialchars(strtolower($uname)); ?>" data-email="<?php echo htmlspecialchars(strtolower($uemail)); ?>" data-creator="<?php echo htmlspecialchars(strtolower($ucreator)); ?>">
                             <td class="text-muted fw-bold text-center staff-col-symbol" data-label="<?php echo htmlspecialchars($headerSymbol); ?>">#<?php echo $rowId; ?></td>
                             <td data-label="<?php echo htmlspecialchars(t('users.table_user')); ?>">
                                 <div class="d-flex align-items-center flex-wrap gap-1">
-                                    <strong><?php echo htmlspecialchars($u['username']); ?></strong>
+                                    <strong><?php echo htmlspecialchars($uname); ?></strong>
                                     <?php if ($rowId === $myId): ?>
                                         <span class="badge bg-info text-dark"><?php echo t('users.badge_you'); ?></span>
                                     <?php endif; ?>
@@ -1315,6 +1329,26 @@ foreach ($permKeysForLabels as $pk) {
                             </button>
                         </li>
                     </ul>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <form method="GET" action="admin_users.php" class="d-flex align-items-center m-0 staff-search-form">
+                            <div class="input-group input-group-sm" style="min-width: 220px;">
+                                <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.15) !important;">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" name="q" class="form-control form-control-sm text-white staff-search-input" 
+                                       style="background: rgba(15, 23, 42, 0.8); border-color: rgba(255,255,255,0.15); min-width: 180px;"
+                                       placeholder="<?php echo $lang === 'ar' ? 'بحث باسم المستخدم...' : 'Search by Username...'; ?>" 
+                                       value="<?php echo htmlspecialchars($search); ?>" 
+                                       autocomplete="off">
+                                <?php if ($search !== ''): ?>
+                                <a href="admin_users.php" class="btn btn-sm btn-outline-secondary" style="border-color: rgba(255,255,255,0.15);" title="<?php echo $lang === 'ar' ? 'إلغاء البحث' : 'Clear Search'; ?>">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="tab-content" id="categoryTabContent">
@@ -1372,14 +1406,33 @@ foreach ($permKeysForLabels as $pk) {
         <!-- For Supervisors: They only manage Resellers, so this is strictly the Resellers Table -->
         <div class="staff-card mb-4">
             <div class="staff-card__body">
-                <div class="staff-card__head mb-3">
+                <div class="staff-card__head mb-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div>
                         <h2 class="staff-card__title">
                             <i class="fas fa-handshake text-info"></i>
                             <span><?php echo $lang === 'ar' ? 'جدول الموزعين التابعين لك (Resellers)' : 'Your Resellers Table'; ?></span>
                             <span class="badge bg-info-subtle text-info border border-info-subtle ms-2">*</span>
                         </h2>
-                        <p class="staff-card__hint"><?php echo $lang === 'ar' ? 'قائمة حسابات الموزعين التي قمت بإنشائها والإشراف عليها.' : 'List of reseller accounts created and supervised by your account.'; ?></p>
+                        <p class="staff-card__hint mb-0"><?php echo $lang === 'ar' ? 'قائمة حسابات الموزعين التي قمت بإنشائها والإشراف عليها.' : 'List of reseller accounts created and supervised by your account.'; ?></p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <form method="GET" action="admin_users.php" class="d-flex align-items-center m-0 staff-search-form">
+                            <div class="input-group input-group-sm" style="min-width: 220px;">
+                                <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.15) !important;">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" name="q" class="form-control form-control-sm text-white staff-search-input" 
+                                       style="background: rgba(15, 23, 42, 0.8); border-color: rgba(255,255,255,0.15); min-width: 180px;"
+                                       placeholder="<?php echo $lang === 'ar' ? 'بحث باسم المستخدم...' : 'Search by Username...'; ?>" 
+                                       value="<?php echo htmlspecialchars($search); ?>" 
+                                       autocomplete="off">
+                                <?php if ($search !== ''): ?>
+                                <a href="admin_users.php" class="btn btn-sm btn-outline-secondary" style="border-color: rgba(255,255,255,0.15);" title="<?php echo $lang === 'ar' ? 'إلغاء البحث' : 'Clear Search'; ?>">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                                <?php endif; ?>
+                            </div>
+                        </form>
                     </div>
                 </div>
                 <!-- Resellers Table: Top header column symbol is '*' -->
@@ -1653,6 +1706,87 @@ foreach ($permKeysForLabels as $pk) {
     }
 
     (data.roleKeys || []).forEach(refreshRoleCount);
+})();
+
+// Live instant search for Staff & Resellers tables
+(function () {
+    var searchInputs = document.querySelectorAll('.staff-search-input');
+    if (!searchInputs || searchInputs.length === 0) return;
+
+    var isArabic = <?php echo json_encode($lang === 'ar'); ?>;
+
+    function filterAllStaffTables(query) {
+        var q = (query || '').trim().toLowerCase();
+        var tables = document.querySelectorAll('.table-staff');
+
+        tables.forEach(function (table) {
+            var tbody = table.querySelector('tbody');
+            if (!tbody) return;
+
+            var rows = tbody.querySelectorAll('tr.staff-user-row');
+            var matched = 0;
+
+            rows.forEach(function (row) {
+                var uname = (row.getAttribute('data-username') || '').toLowerCase();
+                var email = (row.getAttribute('data-email') || '').toLowerCase();
+                var creator = (row.getAttribute('data-creator') || '').toLowerCase();
+                var fullText = row.textContent.toLowerCase();
+
+                if (!q || uname.indexOf(q) !== -1 || email.indexOf(q) !== -1 || creator.indexOf(q) !== -1 || fullText.indexOf(q) !== -1) {
+                    row.style.display = '';
+                    matched++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Handle "No results found" row
+            var noRes = tbody.querySelector('.staff-no-search-results');
+            if (rows.length > 0 && matched === 0 && q !== '') {
+                if (!noRes) {
+                    noRes = document.createElement('tr');
+                    noRes.className = 'staff-no-search-results';
+                    var colCount = table.querySelectorAll('thead th').length || 7;
+                    var label = isArabic
+                        ? 'لا توجد حسابات مطابقة لاسم المستخدم "' + q + '"'
+                        : 'No accounts matching username "' + q + '"';
+                    noRes.innerHTML = '<td colspan="' + colCount + '" class="text-center py-4 text-muted">' +
+                        '<i class="fas fa-search fa-2x mb-2 d-block opacity-50"></i>' +
+                        '<span>' + label + '</span>' +
+                        '</td>';
+                    tbody.appendChild(noRes);
+                } else {
+                    var span = noRes.querySelector('span');
+                    if (span) {
+                        span.textContent = isArabic
+                            ? 'لا توجد حسابات مطابقة لاسم المستخدم "' + q + '"'
+                            : 'No accounts matching username "' + q + '"';
+                    }
+                    noRes.style.display = '';
+                }
+            } else if (noRes) {
+                noRes.style.display = 'none';
+            }
+        });
+    }
+
+    searchInputs.forEach(function (input) {
+        input.addEventListener('input', function () {
+            var val = this.value;
+            searchInputs.forEach(function (other) {
+                if (other !== input) other.value = val;
+            });
+            filterAllStaffTables(val);
+        });
+        input.addEventListener('keyup', function () {
+            filterAllStaffTables(this.value);
+        });
+    });
+
+    var firstVal = searchInputs[0].value;
+    if (firstVal && firstVal.trim() !== '') {
+        filterAllStaffTables(firstVal);
+    }
 })();
 </script>
 </body>
