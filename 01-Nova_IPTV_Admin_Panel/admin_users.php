@@ -617,6 +617,52 @@ foreach ($permKeysForLabels as $pk) {
             color: #fff;
             box-shadow: 0 0 14px rgba(37, 99, 235, 0.45);
         }
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            background: linear-gradient(160deg, #0f172a 0%, #020617 100%);
+            border: 1px solid #1e293b;
+            border-radius: 16px;
+            padding: 16px 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+        .action-bar .form-control {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            color: #f8fafc;
+            border-radius: 10px;
+            padding: 0.45rem 0.85rem;
+            transition: all 0.2s ease;
+        }
+        .action-bar .form-control:focus {
+            background: #0f172a;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+            color: #fff;
+        }
+        .table-search-box {
+            position: relative;
+        }
+        .table-search-box .form-control {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #f8fafc;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            padding: 0.35rem 0.75rem;
+            min-width: 220px;
+            transition: all 0.2s ease;
+        }
+        .table-search-box .form-control:focus {
+            background: #0f172a;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+            color: #fff;
+        }
         .staff-col-symbol {
             width: 50px;
             text-align: center;
@@ -1091,10 +1137,10 @@ foreach ($permKeysForLabels as $pk) {
      * - '*' for the Resellers Table
      * - '#' remains strictly for the Customers Table in customers.php
      */
-    function renderStaffCategoryTable(array $list, string $headerSymbol, bool $isSuperAdmin, bool $isSubAdmin, int $myId, PDO $conn, string $lang, array $allowedRoles, string $emptyMsg): void {
+    function renderStaffCategoryTable(array $list, string $headerSymbol, bool $isSuperAdmin, bool $isSubAdmin, int $myId, PDO $conn, string $lang, array $allowedRoles, string $emptyMsg, string $categoryType = ''): void {
     ?>
         <div class="table-responsive">
-            <table class="table table-staff table-hover mb-0">
+            <table class="table table-staff table-hover mb-0" data-table-category="<?php echo htmlspecialchars($categoryType); ?>">
                 <thead>
                     <tr>
                         <th class="staff-col-symbol text-center" style="width:50px;"><?php echo htmlspecialchars($headerSymbol); ?></th>
@@ -1129,7 +1175,7 @@ foreach ($permKeysForLabels as $pk) {
                             $ucreator = (string)($u['creator_username'] ?? '');
                         ?>
                         <tr class="staff-user-row" data-username="<?php echo htmlspecialchars(strtolower($uname)); ?>" data-email="<?php echo htmlspecialchars(strtolower($uemail)); ?>" data-creator="<?php echo htmlspecialchars(strtolower($ucreator)); ?>">
-                            <td class="text-muted fw-bold text-center staff-col-symbol" data-label="<?php echo htmlspecialchars($headerSymbol); ?>">#<?php echo $rowId; ?></td>
+                            <td class="text-muted fw-bold text-center staff-col-symbol" data-label="<?php echo htmlspecialchars($headerSymbol); ?>"><?php echo htmlspecialchars($headerSymbol) . $rowId; ?></td>
                             <td data-label="<?php echo htmlspecialchars(t('users.table_user')); ?>">
                                 <div class="d-flex align-items-center flex-wrap gap-1">
                                     <strong><?php echo htmlspecialchars($uname); ?></strong>
@@ -1297,6 +1343,54 @@ foreach ($permKeysForLabels as $pk) {
                 return ($u['role'] ?? '') === ADMIN_ROLE_RESELLER;
             }));
         ?>
+        <!-- Action Bar matching Customers Page -->
+        <div class="action-bar">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <ul class="nav nav-pills gap-2 m-0 p-0" id="categoryTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="pill-btn active d-inline-flex align-items-center gap-2" id="tab-supervisors" data-bs-toggle="pill" data-bs-target="#pane-supervisors" type="button" role="tab" style="cursor:pointer;">
+                            <i class="fas fa-user-shield text-primary"></i>
+                            <span><?php echo $lang === 'ar' ? 'جدول المشرفين (Supervisors)' : 'Supervisors Table'; ?></span>
+                            <span class="badge rounded-pill bg-primary ms-1" id="badge-supervisors-count" style="font-size:0.75rem;">+ (<?php echo count($supervisorsUsers); ?>)</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="pill-btn d-inline-flex align-items-center gap-2" id="tab-resellers" data-bs-toggle="pill" data-bs-target="#pane-resellers" type="button" role="tab" style="cursor:pointer;">
+                            <i class="fas fa-handshake text-info"></i>
+                            <span><?php echo $lang === 'ar' ? 'جدول الموزعين (Resellers)' : 'Resellers Table'; ?></span>
+                            <span class="badge rounded-pill bg-info text-dark ms-1" id="badge-resellers-count" style="font-size:0.75rem;">* (<?php echo count($resellersUsers); ?>)</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="pill-btn d-inline-flex align-items-center gap-2" id="tab-all" data-bs-toggle="pill" data-bs-target="#pane-all" type="button" role="tab" style="cursor:pointer;">
+                            <i class="fas fa-layer-group"></i>
+                            <span><?php echo $lang === 'ar' ? 'عرض كلا الجدولين' : 'Show Both Tables'; ?></span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <form method="GET" action="admin_users.php" class="d-flex align-items-center m-0 staff-search-form">
+                    <div class="input-group input-group-sm" style="min-width: 260px;">
+                        <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.18) !important;">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" name="q" class="form-control form-control-sm text-white staff-search-input" 
+                               style="background: rgba(15, 23, 42, 0.85); border-color: rgba(255,255,255,0.18); min-width: 200px;"
+                               placeholder="<?php echo $lang === 'ar' ? 'بحث باسم المستخدم...' : 'Search by Username...'; ?>" 
+                               value="<?php echo htmlspecialchars($search); ?>" 
+                               autocomplete="off">
+                        <?php if ($search !== ''): ?>
+                        <a href="admin_users.php" class="btn btn-sm btn-outline-secondary" style="border-color: rgba(255,255,255,0.18);" title="<?php echo $lang === 'ar' ? 'إلغاء البحث' : 'Clear Search'; ?>">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="staff-card mb-4">
             <div class="staff-card__body">
                 <div class="staff-card__head mb-3">
@@ -1306,137 +1400,150 @@ foreach ($permKeysForLabels as $pk) {
                     </div>
                 </div>
 
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-                    <ul class="nav nav-pills gap-2" id="categoryTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="pill-btn active d-inline-flex align-items-center gap-2" id="tab-supervisors" data-bs-toggle="pill" data-bs-target="#pane-supervisors" type="button" role="tab" style="cursor:pointer;">
-                                <i class="fas fa-user-shield text-primary"></i>
-                                <span><?php echo $lang === 'ar' ? 'جدول المشرفين (Supervisors)' : 'Supervisors Table'; ?></span>
-                                <span class="badge rounded-pill bg-primary ms-1" style="font-size:0.75rem;">+ (<?php echo count($supervisorsUsers); ?>)</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="pill-btn d-inline-flex align-items-center gap-2" id="tab-resellers" data-bs-toggle="pill" data-bs-target="#pane-resellers" type="button" role="tab" style="cursor:pointer;">
-                                <i class="fas fa-handshake text-info"></i>
-                                <span><?php echo $lang === 'ar' ? 'جدول الموزعين (Resellers)' : 'Resellers Table'; ?></span>
-                                <span class="badge rounded-pill bg-info text-dark ms-1" style="font-size:0.75rem;">* (<?php echo count($resellersUsers); ?>)</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="pill-btn d-inline-flex align-items-center gap-2" id="tab-all" data-bs-toggle="pill" data-bs-target="#pane-all" type="button" role="tab" style="cursor:pointer;">
-                                <i class="fas fa-layer-group"></i>
-                                <span><?php echo $lang === 'ar' ? 'عرض كلا الجدولين' : 'Show Both Tables'; ?></span>
-                            </button>
-                        </li>
-                    </ul>
-
-                    <div class="d-flex align-items-center gap-2">
-                        <form method="GET" action="admin_users.php" class="d-flex align-items-center m-0 staff-search-form">
-                            <div class="input-group input-group-sm" style="min-width: 220px;">
-                                <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.15) !important;">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <input type="text" name="q" class="form-control form-control-sm text-white staff-search-input" 
-                                       style="background: rgba(15, 23, 42, 0.8); border-color: rgba(255,255,255,0.15); min-width: 180px;"
-                                       placeholder="<?php echo $lang === 'ar' ? 'بحث باسم المستخدم...' : 'Search by Username...'; ?>" 
-                                       value="<?php echo htmlspecialchars($search); ?>" 
-                                       autocomplete="off">
-                                <?php if ($search !== ''): ?>
-                                <a href="admin_users.php" class="btn btn-sm btn-outline-secondary" style="border-color: rgba(255,255,255,0.15);" title="<?php echo $lang === 'ar' ? 'إلغاء البحث' : 'Clear Search'; ?>">
-                                    <i class="fas fa-times"></i>
-                                </a>
-                                <?php endif; ?>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
                 <div class="tab-content" id="categoryTabContent">
                     <!-- 1. Supervisors Table: Top header column symbol is '+' -->
                     <div class="tab-pane fade show active" id="pane-supervisors" role="tabpanel">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <h3 class="fs-6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
                                 <i class="fas fa-user-shield text-primary"></i>
                                 <span><?php echo $lang === 'ar' ? 'جدول المشرفين والمدراء' : 'Supervisors & Staff Table'; ?></span>
                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">+</span>
                             </h3>
-                            <span class="small text-muted"><?php echo count($supervisorsUsers); ?> <?php echo $lang === 'ar' ? 'مشرف' : 'supervisors'; ?></span>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="table-search-box">
+                                    <div class="input-group input-group-sm" style="min-width: 240px;">
+                                        <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.15) !important;">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm text-white table-specific-search" 
+                                               data-target="supervisors" 
+                                               placeholder="<?php echo $lang === 'ar' ? 'بحث في المشرفين (مثل: sikaa)...' : 'Search supervisors (e.g. sikaa)...'; ?>" 
+                                               autocomplete="off">
+                                    </div>
+                                </div>
+                                <span class="small text-muted staff-table-count" data-category="supervisors"><?php echo count($supervisorsUsers); ?> <?php echo $lang === 'ar' ? 'مشرف' : 'supervisors'; ?></span>
+                            </div>
                         </div>
-                        <?php renderStaffCategoryTable($supervisorsUsers, '+', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد مشرفون مسجلون حالياً.' : 'No supervisors found.'); ?>
+                        <?php renderStaffCategoryTable($supervisorsUsers, '+', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد مشرفون مسجلون حالياً.' : 'No supervisors found.', 'supervisors'); ?>
                     </div>
 
                     <!-- 2. Resellers Table: Top header column symbol is '*' -->
                     <div class="tab-pane fade" id="pane-resellers" role="tabpanel">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <h3 class="fs-6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
                                 <i class="fas fa-handshake text-info"></i>
                                 <span><?php echo $lang === 'ar' ? 'جدول الموزعين المعزولين' : 'Isolated Resellers Table'; ?></span>
                                 <span class="badge bg-info-subtle text-info border border-info-subtle fs-6">*</span>
                             </h3>
-                            <span class="small text-muted"><?php echo count($resellersUsers); ?> <?php echo $lang === 'ar' ? 'موزع' : 'resellers'; ?></span>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="table-search-box">
+                                    <div class="input-group input-group-sm" style="min-width: 240px;">
+                                        <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.15) !important;">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm text-white table-specific-search" 
+                                               data-target="resellers" 
+                                               placeholder="<?php echo $lang === 'ar' ? 'بحث في الموزعين (مثل: nadhir)...' : 'Search resellers (e.g. nadhir)...'; ?>" 
+                                               autocomplete="off">
+                                    </div>
+                                </div>
+                                <span class="small text-muted staff-table-count" data-category="resellers"><?php echo count($resellersUsers); ?> <?php echo $lang === 'ar' ? 'موزع' : 'resellers'; ?></span>
+                            </div>
                         </div>
-                        <?php renderStaffCategoryTable($resellersUsers, '*', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد موزعون مسجلون حالياً.' : 'No resellers found.'); ?>
+                        <?php renderStaffCategoryTable($resellersUsers, '*', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد موزعون مسجلون حالياً.' : 'No resellers found.', 'resellers'); ?>
                     </div>
 
                     <!-- Both Tables View -->
                     <div class="tab-pane fade" id="pane-all" role="tabpanel">
                         <div class="mb-4">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                                 <h3 class="fs-6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
                                     <i class="fas fa-user-shield text-primary"></i>
-                                    <span><?php echo $lang === 'ar' ? 'جدول المشرفين والمدراء (رمز العمود الأول: +)' : 'Supervisors Table (Header Column: +)'; ?></span>
+                                    <span><?php echo $lang === 'ar' ? 'جدول المشرفين والمدراء (رمز العمود: +)' : 'Supervisors Table (Header Column: +)'; ?></span>
                                 </h3>
+                                <div class="table-search-box">
+                                    <div class="input-group input-group-sm" style="min-width: 240px;">
+                                        <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.15) !important;">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm text-white table-specific-search" 
+                                               data-target="supervisors" 
+                                               placeholder="<?php echo $lang === 'ar' ? 'بحث في المشرفين (مثل: sikaa)...' : 'Search supervisors (e.g. sikaa)...'; ?>" 
+                                               autocomplete="off">
+                                    </div>
+                                </div>
                             </div>
-                            <?php renderStaffCategoryTable($supervisorsUsers, '+', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد مشرفون مسجلون حالياً.' : 'No supervisors found.'); ?>
+                            <?php renderStaffCategoryTable($supervisorsUsers, '+', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد مشرفون مسجلون حالياً.' : 'No supervisors found.', 'supervisors'); ?>
                         </div>
                         <div>
-                            <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                                 <h3 class="fs-6 fw-bold text-white mb-0 d-flex align-items-center gap-2">
                                     <i class="fas fa-handshake text-info"></i>
-                                    <span><?php echo $lang === 'ar' ? 'جدول الموزعين (رمز العمود الأول: *)' : 'Resellers Table (Header Column: *)'; ?></span>
+                                    <span><?php echo $lang === 'ar' ? 'جدول الموزعين (رمز العمود: *)' : 'Resellers Table (Header Column: *)'; ?></span>
                                 </h3>
+                                <div class="table-search-box">
+                                    <div class="input-group input-group-sm" style="min-width: 240px;">
+                                        <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.15) !important;">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm text-white table-specific-search" 
+                                               data-target="resellers" 
+                                               placeholder="<?php echo $lang === 'ar' ? 'بحث في الموزعين (مثل: nadhir)...' : 'Search resellers (e.g. nadhir)...'; ?>" 
+                                               autocomplete="off">
+                                    </div>
+                                </div>
                             </div>
-                            <?php renderStaffCategoryTable($resellersUsers, '*', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد موزعون مسجلون حالياً.' : 'No resellers found.'); ?>
+                            <?php renderStaffCategoryTable($resellersUsers, '*', true, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لا يوجد موزعون مسجلون حالياً.' : 'No resellers found.', 'resellers'); ?>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     <?php else: ?>
-        <!-- For Supervisors: They only manage Resellers, so this is strictly the Resellers Table -->
+        <!-- For Supervisors: Action Bar matching Customers Page -->
+        <div class="action-bar mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="pill-btn active">
+                    <i class="fas fa-handshake text-info me-2"></i>
+                    <span><?php echo $lang === 'ar' ? 'جدول الموزعين التابعين لك (Resellers)' : 'Your Resellers Table'; ?></span>
+                    <span class="badge rounded-pill bg-info text-dark ms-2">* (<?php echo count($users); ?>)</span>
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <form method="GET" action="admin_users.php" class="d-flex align-items-center m-0 staff-search-form">
+                    <div class="input-group input-group-sm" style="min-width: 260px;">
+                        <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.18) !important;">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" name="q" class="form-control form-control-sm text-white staff-search-input" 
+                               style="background: rgba(15, 23, 42, 0.85); border-color: rgba(255,255,255,0.18); min-width: 200px;"
+                               placeholder="<?php echo $lang === 'ar' ? 'بحث باسم المستخدم للموزع (مثل: nadhir)...' : 'Search reseller username (e.g. nadhir)...'; ?>" 
+                               value="<?php echo htmlspecialchars($search); ?>" 
+                               autocomplete="off">
+                        <?php if ($search !== ''): ?>
+                        <a href="admin_users.php" class="btn btn-sm btn-outline-secondary" style="border-color: rgba(255,255,255,0.18);" title="<?php echo $lang === 'ar' ? 'إلغاء البحث' : 'Clear Search'; ?>">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="staff-card mb-4">
             <div class="staff-card__body">
                 <div class="staff-card__head mb-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div>
                         <h2 class="staff-card__title">
                             <i class="fas fa-handshake text-info"></i>
-                            <span><?php echo $lang === 'ar' ? 'جدول الموزعين التابعين لك (Resellers)' : 'Your Resellers Table'; ?></span>
+                            <span><?php echo $lang === 'ar' ? 'قائمة حسابات الموزعين' : 'Reseller Accounts List'; ?></span>
                             <span class="badge bg-info-subtle text-info border border-info-subtle ms-2">*</span>
                         </h2>
                         <p class="staff-card__hint mb-0"><?php echo $lang === 'ar' ? 'قائمة حسابات الموزعين التي قمت بإنشائها والإشراف عليها.' : 'List of reseller accounts created and supervised by your account.'; ?></p>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <form method="GET" action="admin_users.php" class="d-flex align-items-center m-0 staff-search-form">
-                            <div class="input-group input-group-sm" style="min-width: 220px;">
-                                <span class="input-group-text bg-dark border-secondary text-muted" style="border-color: rgba(255,255,255,0.15) !important;">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <input type="text" name="q" class="form-control form-control-sm text-white staff-search-input" 
-                                       style="background: rgba(15, 23, 42, 0.8); border-color: rgba(255,255,255,0.15); min-width: 180px;"
-                                       placeholder="<?php echo $lang === 'ar' ? 'بحث باسم المستخدم...' : 'Search by Username...'; ?>" 
-                                       value="<?php echo htmlspecialchars($search); ?>" 
-                                       autocomplete="off">
-                                <?php if ($search !== ''): ?>
-                                <a href="admin_users.php" class="btn btn-sm btn-outline-secondary" style="border-color: rgba(255,255,255,0.15);" title="<?php echo $lang === 'ar' ? 'إلغاء البحث' : 'Clear Search'; ?>">
-                                    <i class="fas fa-times"></i>
-                                </a>
-                                <?php endif; ?>
-                            </div>
-                        </form>
-                    </div>
                 </div>
                 <!-- Resellers Table: Top header column symbol is '*' -->
-                <?php renderStaffCategoryTable($users, '*', false, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لم تقم بإنشاء أي موزع حتى الآن.' : 'No resellers created yet under your account.'); ?>
+                <?php renderStaffCategoryTable($users, '*', false, $isSubAdmin, $myId, $conn, $lang, $allowedRoles, $lang === 'ar' ? 'لم تقم بإنشاء أي موزع حتى الآن.' : 'No resellers created yet under your account.', 'resellers'); ?>
             </div>
         </div>
     <?php endif; ?>
@@ -1708,84 +1815,139 @@ foreach ($permKeysForLabels as $pk) {
     (data.roleKeys || []).forEach(refreshRoleCount);
 })();
 
-// Live instant search for Staff & Resellers tables
+// Live instant search for Staff & Resellers tables (Global and Table-Specific)
 (function () {
-    var searchInputs = document.querySelectorAll('.staff-search-input');
-    if (!searchInputs || searchInputs.length === 0) return;
-
+    var globalSearchInputs = document.querySelectorAll('.staff-search-input');
+    var specificSearchInputs = document.querySelectorAll('.table-specific-search');
     var isArabic = <?php echo json_encode($lang === 'ar'); ?>;
 
-    function filterAllStaffTables(query) {
+    function filterTable(table, query) {
         var q = (query || '').trim().toLowerCase();
-        var tables = document.querySelectorAll('.table-staff');
+        var tbody = table.querySelector('tbody');
+        if (!tbody) return 0;
 
-        tables.forEach(function (table) {
-            var tbody = table.querySelector('tbody');
-            if (!tbody) return;
+        var rows = tbody.querySelectorAll('tr.staff-user-row');
+        var matched = 0;
 
-            var rows = tbody.querySelectorAll('tr.staff-user-row');
-            var matched = 0;
+        rows.forEach(function (row) {
+            var uname = (row.getAttribute('data-username') || '').toLowerCase();
+            var email = (row.getAttribute('data-email') || '').toLowerCase();
+            var creator = (row.getAttribute('data-creator') || '').toLowerCase();
+            var fullText = row.textContent.toLowerCase();
 
-            rows.forEach(function (row) {
-                var uname = (row.getAttribute('data-username') || '').toLowerCase();
-                var email = (row.getAttribute('data-email') || '').toLowerCase();
-                var creator = (row.getAttribute('data-creator') || '').toLowerCase();
-                var fullText = row.textContent.toLowerCase();
+            if (!q || uname.indexOf(q) !== -1 || email.indexOf(q) !== -1 || creator.indexOf(q) !== -1 || fullText.indexOf(q) !== -1) {
+                row.style.display = '';
+                matched++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
 
-                if (!q || uname.indexOf(q) !== -1 || email.indexOf(q) !== -1 || creator.indexOf(q) !== -1 || fullText.indexOf(q) !== -1) {
-                    row.style.display = '';
-                    matched++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            // Handle "No results found" row
-            var noRes = tbody.querySelector('.staff-no-search-results');
-            if (rows.length > 0 && matched === 0 && q !== '') {
-                if (!noRes) {
-                    noRes = document.createElement('tr');
-                    noRes.className = 'staff-no-search-results';
-                    var colCount = table.querySelectorAll('thead th').length || 7;
-                    var label = isArabic
+        // Handle "No results found" row
+        var noRes = tbody.querySelector('.staff-no-search-results');
+        if (rows.length > 0 && matched === 0 && q !== '') {
+            if (!noRes) {
+                noRes = document.createElement('tr');
+                noRes.className = 'staff-no-search-results';
+                var colCount = table.querySelectorAll('thead th').length || 7;
+                var label = isArabic
+                    ? 'لا توجد حسابات مطابقة لاسم المستخدم "' + q + '"'
+                    : 'No accounts matching username "' + q + '"';
+                noRes.innerHTML = '<td colspan="' + colCount + '" class="text-center py-4 text-muted">' +
+                    '<i class="fas fa-search fa-2x mb-2 d-block opacity-50"></i>' +
+                    '<span>' + label + '</span>' +
+                    '</td>';
+                tbody.appendChild(noRes);
+            } else {
+                var span = noRes.querySelector('span');
+                if (span) {
+                    span.textContent = isArabic
                         ? 'لا توجد حسابات مطابقة لاسم المستخدم "' + q + '"'
                         : 'No accounts matching username "' + q + '"';
-                    noRes.innerHTML = '<td colspan="' + colCount + '" class="text-center py-4 text-muted">' +
-                        '<i class="fas fa-search fa-2x mb-2 d-block opacity-50"></i>' +
-                        '<span>' + label + '</span>' +
-                        '</td>';
-                    tbody.appendChild(noRes);
-                } else {
-                    var span = noRes.querySelector('span');
-                    if (span) {
-                        span.textContent = isArabic
-                            ? 'لا توجد حسابات مطابقة لاسم المستخدم "' + q + '"'
-                            : 'No accounts matching username "' + q + '"';
-                    }
-                    noRes.style.display = '';
                 }
-            } else if (noRes) {
-                noRes.style.display = 'none';
+                noRes.style.display = '';
             }
+        } else if (noRes) {
+            noRes.style.display = 'none';
+        }
+
+        return matched;
+    }
+
+    function updateCategoryBadge(cat, count) {
+        var badge = document.getElementById(cat === 'supervisors' ? 'badge-supervisors-count' : 'badge-resellers-count');
+        if (badge) {
+            var prefix = (cat === 'supervisors') ? '+ ' : '* ';
+            badge.textContent = prefix + '(' + count + ')';
+        }
+        var textCounts = document.querySelectorAll('.staff-table-count[data-category="' + cat + '"]');
+        textCounts.forEach(function (el) {
+            var suffix = isArabic ? (cat === 'supervisors' ? 'مشرف' : 'موزع') : (cat === 'supervisors' ? 'supervisors' : 'resellers');
+            el.textContent = count + ' ' + suffix;
         });
     }
 
-    searchInputs.forEach(function (input) {
+    function filterAll(query) {
+        var q = (query || '').trim().toLowerCase();
+        var tables = document.querySelectorAll('.table-staff');
+        var counts = { supervisors: 0, resellers: 0 };
+
+        tables.forEach(function (table) {
+            var cat = table.getAttribute('data-table-category') || '';
+            var m = filterTable(table, q);
+            if (cat && counts[cat] !== undefined) {
+                counts[cat] = Math.max(counts[cat], m);
+            }
+        });
+
+        updateCategoryBadge('supervisors', counts.supervisors);
+        updateCategoryBadge('resellers', counts.resellers);
+    }
+
+    function filterCategory(category, query) {
+        var tables = document.querySelectorAll('.table-staff[data-table-category="' + category + '"]');
+        var matchedCount = 0;
+        tables.forEach(function (table) {
+            matchedCount = Math.max(matchedCount, filterTable(table, query));
+        });
+        updateCategoryBadge(category, matchedCount);
+    }
+
+    // Global Search Inputs
+    globalSearchInputs.forEach(function (input) {
         input.addEventListener('input', function () {
             var val = this.value;
-            searchInputs.forEach(function (other) {
+            globalSearchInputs.forEach(function (other) {
                 if (other !== input) other.value = val;
             });
-            filterAllStaffTables(val);
+            filterAll(val);
         });
         input.addEventListener('keyup', function () {
-            filterAllStaffTables(this.value);
+            filterAll(this.value);
         });
     });
 
-    var firstVal = searchInputs[0].value;
-    if (firstVal && firstVal.trim() !== '') {
-        filterAllStaffTables(firstVal);
+    // Table-specific Search Inputs (Supervisors table or Resellers table)
+    specificSearchInputs.forEach(function (input) {
+        var targetCat = input.getAttribute('data-target');
+        if (!targetCat) return;
+
+        input.addEventListener('input', function () {
+            var val = this.value;
+            filterCategory(targetCat, val);
+        });
+        input.addEventListener('keyup', function () {
+            var val = this.value;
+            filterCategory(targetCat, val);
+        });
+    });
+
+    // Auto-run if search parameter is prefilled
+    if (globalSearchInputs.length > 0 && globalSearchInputs[0].value) {
+        var initialQ = globalSearchInputs[0].value;
+        if (initialQ.trim() !== '') {
+            filterAll(initialQ);
+        }
     }
 })();
 </script>
