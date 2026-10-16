@@ -2,18 +2,18 @@ part of '../screens.dart';
 
 /// ألوان واجهة الدخول الفاخرة.
 abstract final class LoginPremiumColors {
-  /// SkyPro blue accent.
+  /// SkyPro cinematic neon blue & deep royal blue.
   static Color get gold => kColorPrimary;
   static Color get goldDark => kColorPrimaryDark;
   static const Color bgTop = kSkyProBlack;
   static const Color bgBottom = kSkyProBlack;
-  static const Color greenActive = kSkyProBlue;
-  static const Color glassFill = Color(0x12E0E0E0);
-  static const Color glassBorder = Color(0x55007BFF);
+  static const Color greenActive = kSkyProNeonBlue;
+  static const Color glassFill = Color(0x1800ABFB);
+  static const Color glassBorder = Color(0x5500ABFB);
 
-  static const Color methodCard = Color(0xFF080808);
+  static const Color methodCard = Color(0xFF070B14);
   static const Color methodCardDeep = kSkyProBlack;
-  static const Color methodCardBorder = Color(0x55007BFF);
+  static const Color methodCardBorder = Color(0x5500ABFB);
 }
 
 /// أحجام خطوط موحّدة لواجهات الدخول — أوضح على TV والهاتف.
@@ -29,7 +29,7 @@ abstract final class LoginPremiumTypography {
       isTv ? tv : mobile;
 }
 
-/// Pure-black login background with a restrained SkyPro-blue glow.
+/// Pure-black login background with cinematic neon cyan and electric blue aura.
 class _LoginEntryPremiumBackground extends StatelessWidget {
   const _LoginEntryPremiumBackground();
 
@@ -46,8 +46,8 @@ class _LoginEntryPremiumBackground extends StatelessWidget {
                 center: Alignment.center,
                 radius: 0.95,
                 colors: [
-                  Color(0x1A007BFF),
-                  Color(0x08007BFF),
+                  Color(0x2200ABFB),
+                  Color(0x0A0052D9),
                   Colors.transparent,
                 ],
                 stops: [0.0, 0.55, 1.0],
@@ -229,20 +229,25 @@ class _LoginFocusShellState extends State<_LoginFocusShell> {
 }
 
 BoxDecoration _loginGlassDecoration({
-  double radius = 20,
+  double radius = 16,
 }) {
   return BoxDecoration(
     borderRadius: BorderRadius.circular(radius),
-    color: LoginPremiumColors.glassFill,
+    color: const Color(0xFF090D18).withValues(alpha: 0.88),
     border: Border.all(
-      color: LoginPremiumColors.glassBorder,
-      width: 1,
+      color: kSkyProSilver.withValues(alpha: 0.20),
+      width: 1.2,
     ),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: 0.35),
-        blurRadius: 24,
-        offset: const Offset(0, 8),
+        color: Colors.black.withValues(alpha: 0.45),
+        blurRadius: 18,
+        offset: const Offset(0, 5),
+      ),
+      BoxShadow(
+        color: kSkyProNeonBlue.withValues(alpha: 0.08),
+        blurRadius: 12,
+        spreadRadius: 0,
       ),
     ],
   );
@@ -260,8 +265,8 @@ class _LoginEntryHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final logoSize = compact
-        ? (isTvDevice ? 52.0 : 44.0)
-        : (isTvDevice ? 68.0 : 56.0);
+        ? (isTvDevice ? 56.0 : 46.0)
+        : (isTvDevice ? 74.0 : 60.0);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -269,20 +274,34 @@ class _LoginEntryHero extends StatelessWidget {
           width: logoSize,
           height: logoSize,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF0D1424),
+                Color(0xFF050811),
+              ],
+            ),
             border: Border.all(
-              color: kSkyProBlue.withValues(alpha: 0.6),
-              width: 1.5,
+              color: kSkyProNeonBlue.withValues(alpha: 0.80),
+              width: 1.8,
             ),
             boxShadow: [
               BoxShadow(
-                color: kSkyProBlue.withValues(alpha: 0.4),
-                blurRadius: 22,
+                color: kSkyProNeonBlue.withValues(alpha: 0.50),
+                blurRadius: 26,
                 spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: kSkyProDeepBlue.withValues(alpha: 0.35),
+                blurRadius: 38,
+                spreadRadius: 4,
               ),
             ],
           ),
           clipBehavior: Clip.antiAlias,
+          padding: const EdgeInsets.all(8),
           child: Image.asset(
             kIconSplash,
             fit: BoxFit.contain,
@@ -295,12 +314,23 @@ class _LoginEntryHero extends StatelessWidget {
           kAppName.toUpperCase(),
           textAlign: TextAlign.center,
           style: Get.textTheme.headlineMedium!.copyWith(
-            color: Colors.white,
+            color: kSkyProSilverBright,
             fontWeight: FontWeight.w900,
-            letterSpacing: 2.8,
+            letterSpacing: 3.5,
             fontSize: compact
-                ? (isTvDevice ? 20.0 : 18.0)
-                : (isTvDevice ? 26.0 : 22.0),
+                ? (isTvDevice ? 22.0 : 19.0)
+                : (isTvDevice ? 28.0 : 24.0),
+            shadows: [
+              Shadow(
+                color: kSkyProNeonBlue.withValues(alpha: 0.60),
+                blurRadius: 20,
+              ),
+              const Shadow(
+                color: Colors.black,
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 4),
@@ -308,10 +338,10 @@ class _LoginEntryHero extends StatelessWidget {
           'entry_method_xtream_hint'.tr, // "Username & Password"
           textAlign: TextAlign.center,
           style: Get.textTheme.bodyMedium!.copyWith(
-            color: kSkyProSilver.withValues(alpha: 0.8),
+            color: kSkyProSilver.withValues(alpha: 0.85),
             fontWeight: FontWeight.w600,
             fontSize: isTvDevice ? 14.0 : 12.5,
-            letterSpacing: 0.6,
+            letterSpacing: 0.8,
           ),
         ),
       ],
@@ -813,29 +843,36 @@ InputDecoration _loginPremiumFieldDecoration({
 }) {
   final border = OutlineInputBorder(
     borderRadius: BorderRadius.circular(16),
-    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+    borderSide: BorderSide(
+      color: kSkyProSilver.withValues(alpha: 0.22),
+      width: 1.2,
+    ),
   );
   return InputDecoration(
     isDense: true,
     hintText: hint,
     hintStyle: TextStyle(
-      color: Colors.white.withValues(alpha: 0.45),
+      color: kSkyProSilverMuted.withValues(alpha: 0.70),
       fontSize: LoginPremiumTypography.hint(isTvDevice),
+      fontWeight: FontWeight.w500,
     ),
     prefixIcon: Icon(
       prefixIcon,
       size: isTvDevice ? 22 : 20,
-      color: kColorPrimary.withValues(alpha: 0.9),
+      color: kSkyProNeonBlue,
     ),
     suffixIcon: suffixIcon,
     filled: true,
-    fillColor: Colors.white.withValues(alpha: 0.05),
-    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+    fillColor: const Color(0xFF0B101B).withValues(alpha: 0.90),
+    contentPadding: EdgeInsets.symmetric(
+      vertical: isTvDevice ? 16 : 14,
+      horizontal: 14,
+    ),
     border: border,
     enabledBorder: border,
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: kColorFocus, width: 2),
+    focusedBorder: const OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(16)),
+      borderSide: BorderSide(color: kSkyProNeonBlue, width: 2.2),
     ),
   );
 }
@@ -1171,27 +1208,27 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                           },
                           child: Container(
                             padding: EdgeInsets.symmetric(
-                              horizontal: isTvDevice ? 28 : 20,
-                              vertical: isTvDevice ? 24 : 18,
+                              horizontal: isTvDevice ? 32 : 22,
+                              vertical: isTvDevice ? 26 : 20,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF0C0D11).withValues(alpha: 0.92),
-                              borderRadius: BorderRadius.circular(24),
+                              color: const Color(0xFF070A12).withValues(alpha: 0.95),
+                              borderRadius: BorderRadius.circular(26),
                               border: Border.all(
-                                color: kSkyProBlue.withValues(alpha: 0.45),
-                                width: 1.5,
+                                color: kSkyProNeonBlue.withValues(alpha: 0.55),
+                                width: 1.8,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.8),
-                                  blurRadius: 32,
+                                  color: Colors.black.withValues(alpha: 0.88),
+                                  blurRadius: 36,
                                   spreadRadius: 2,
-                                  offset: const Offset(0, 10),
+                                  offset: const Offset(0, 14),
                                 ),
                                 BoxShadow(
-                                  color: kSkyProBlue.withValues(alpha: 0.18),
-                                  blurRadius: 24,
-                                  spreadRadius: 0,
+                                  color: kSkyProNeonBlue.withValues(alpha: 0.22),
+                                  blurRadius: 30,
+                                  spreadRadius: 1,
                                 ),
                               ],
                             ),
@@ -1200,7 +1237,7 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 _LoginEntryHero(isTvDevice: isTvDevice),
-                                SizedBox(height: isTvDevice ? 20 : 16),
+                                SizedBox(height: isTvDevice ? 22 : 18),
                                 tvTraverseOrder(
                                   1,
                                   TextField(
@@ -1259,8 +1296,7 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                                               ? LucideIcons.eye_off
                                               : LucideIcons.eye,
                                           size: 18,
-                                          color: LoginPremiumColors.gold
-                                              .withValues(alpha: 0.9),
+                                          color: kSkyProNeonBlue,
                                         ),
                                       ),
                                     ),
@@ -1272,35 +1308,47 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                                         _submitManualCredsAfterCode(),
                                   ),
                                 ),
-                                SizedBox(height: isTvDevice ? 18 : 14),
+                                SizedBox(height: isTvDevice ? 20 : 16),
                                 tvTraverseOrder(
                                   3,
                                   _LoginFocusShell(
                                     focusNode: _manualLoginFocus,
-                                    borderRadius: 14,
+                                    borderRadius: 16,
                                     enabled: !loadingAuth,
                                     onTap: _submitManualCredsAfterCode,
                                     onKeyEvent: _tvManualLoginKeyEvent,
                                     child: Container(
                                       width: double.infinity,
                                       padding: EdgeInsets.symmetric(
-                                        vertical: isTvDevice ? 15 : 13,
+                                        vertical: isTvDevice ? 16 : 14,
                                       ),
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(14),
-                                        gradient: LinearGradient(
+                                        borderRadius: BorderRadius.circular(16),
+                                        gradient: const LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
                                           colors: [
-                                            LoginPremiumColors.gold,
-                                            LoginPremiumColors.goldDark,
+                                            Color(0xFF00D2FF),
+                                            Color(0xFF0072FF),
+                                            Color(0xFF0044CD),
                                           ],
+                                        ),
+                                        border: Border.all(
+                                          color: Colors.white.withValues(alpha: 0.35),
+                                          width: 1.2,
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: LoginPremiumColors.gold
-                                                .withValues(alpha: 0.35),
-                                            blurRadius: 16,
+                                            color: const Color(0xFF0072FF)
+                                                .withValues(alpha: 0.55),
+                                            blurRadius: 22,
                                             spreadRadius: 1,
-                                            offset: const Offset(0, 4),
+                                            offset: const Offset(0, 5),
+                                          ),
+                                          BoxShadow(
+                                            color: const Color(0xFF00D2FF)
+                                                .withValues(alpha: 0.30),
+                                            blurRadius: 14,
                                           ),
                                         ],
                                       ),
@@ -1321,7 +1369,7 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                                           ] else ...[
                                             const Icon(
                                               LucideIcons.log_in,
-                                              size: 18,
+                                              size: 19,
                                               color: Colors.white,
                                             ),
                                             const SizedBox(width: 8),
@@ -1333,11 +1381,11 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                                             style: Get.textTheme.bodyLarge!
                                                 .copyWith(
                                                   color: Colors.white,
-                                                  fontWeight: FontWeight.w800,
+                                                  fontWeight: FontWeight.w900,
                                                   fontSize:
                                                       LoginPremiumTypography
                                                           .button(isTvDevice),
-                                                  letterSpacing: 0.5,
+                                                  letterSpacing: 0.8,
                                                 ),
                                           ),
                                         ],
