@@ -781,22 +781,11 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
     return _tvPreferredTopChipFocus();
   }
 
-  /// أول عنصر قابل للتركيز في النموذج تحت الشريط العلوي.
+  /// أول عنصر قابل للتركيز في النموذج تحت الشريط العلوي (خانة اسم المستخدم).
   FocusNode _tvFocusFirstFormNode() {
-    if (_pendingHostDomainFromCode != null &&
-        _tvNodeFocusable(_manualUsernameFocus)) {
-      return _manualUsernameFocus;
-    }
-    if (_pendingHostDomainFromCode == null &&
-        showUsernameLogin &&
-        _tvNodeFocusable(_loginRouteFocus)) {
-      return _loginRouteFocus;
-    }
-    if (_tvNodeFocusable(_m3uMethodFocus)) return _m3uMethodFocus;
-    if (_tvNodeFocusable(_codeMethodFocus)) return _codeMethodFocus;
-    if (_tvNodeFocusable(_qrMethodFocus)) return _qrMethodFocus;
-    if (_tvNodeFocusable(_codeFieldFocus)) return _codeFieldFocus;
-    return _languageFocusNode;
+    if (_tvNodeFocusable(_manualUsernameFocus)) return _manualUsernameFocus;
+    if (_tvNodeFocusable(_manualPasswordFocus)) return _manualPasswordFocus;
+    return _manualLoginFocus;
   }
 
   /// تنقل ريموت لصف الأزرار العلوي (يُستدعى من _LoginFocusShell.onKeyEvent).
@@ -990,15 +979,20 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
     return settingsTvActivateOnSelect(event, onTap);
   }
 
+  void _showIme() {
+    SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+  }
+
   KeyEventResult _tvManualLoginKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) {
       return settingsTvActivateOnSelect(event, _submitManualCredsAfterCode);
     }
-    if (!isTv(context) || _pendingHostDomainFromCode == null) {
-      return settingsTvActivateOnSelect(event, _submitManualCredsAfterCode);
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowUp) {
       _tvRequestFocus(_manualPasswordFocus);
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.arrowDown) {
       return KeyEventResult.handled;
     }
     return settingsTvActivateOnSelect(event, _submitManualCredsAfterCode);
@@ -1015,7 +1009,14 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
         return KeyEventResult.handled;
       }
       if (key == LogicalKeyboardKey.arrowUp) {
-        _tvRequestFocus(_codeFieldFocus);
+        _tvRequestFocus(_tvPreferredTopChipFocus());
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
+          key == LogicalKeyboardKey.numpadEnter) {
+        _manualUsernameFocus.requestFocus();
+        _showIme();
         return KeyEventResult.handled;
       }
       return KeyEventResult.ignored;
@@ -1033,33 +1034,11 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
         _tvRequestFocus(_manualLoginFocus);
         return KeyEventResult.handled;
       }
-      return KeyEventResult.ignored;
-    };
-
-    _codeFieldFocus.onKeyEvent = (node, event) {
-      if (event is! KeyDownEvent) return KeyEventResult.ignored;
-      if (!isTv(context)) return KeyEventResult.ignored;
-      final key = event.logicalKey;
-      if (key == LogicalKeyboardKey.enter ||
-          key == LogicalKeyboardKey.select ||
+      if (key == LogicalKeyboardKey.select ||
+          key == LogicalKeyboardKey.enter ||
           key == LogicalKeyboardKey.numpadEnter) {
-        _openTvCodeKeypad();
-        return KeyEventResult.handled;
-      }
-      if (_showTvCodeKeypad) return KeyEventResult.ignored;
-      if (key == LogicalKeyboardKey.arrowDown) {
-        if (_pendingHostDomainFromCode != null) {
-          _tvRequestFocus(_manualUsernameFocus);
-        }
-        return KeyEventResult.handled;
-      }
-      if (key == LogicalKeyboardKey.arrowUp) {
-        // شجرة: كود → (زر يوزر إن وُجد) / تفعيل / أزرار الأعلى
-        _tvRequestFocus(_tvFocusAboveCodeField());
-        return KeyEventResult.handled;
-      }
-      if (key == LogicalKeyboardKey.arrowLeft ||
-          key == LogicalKeyboardKey.arrowRight) {
+        _manualPasswordFocus.requestFocus();
+        _showIme();
         return KeyEventResult.handled;
       }
       return KeyEventResult.ignored;
@@ -1080,10 +1059,12 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
     if (showActivationLoginDeniedToast(context, _activationStatus)) {
       return;
     }
-    final domain = _pendingHostDomainFromCode?.trim() ?? '';
+    final domain = (_pendingHostDomainFromCode != null &&
+            _pendingHostDomainFromCode!.trim().isNotEmpty)
+        ? _pendingHostDomainFromCode!.trim()
+        : kHardcodedStreamingServerUrl;
     final username = _manualUsernameController.text.trim();
     final password = _manualPasswordController.text.trim();
-    if (domain.isEmpty) return;
     if (username.isEmpty || password.isEmpty) {
       _manualCredsShakeController
         ..stop()
@@ -1406,15 +1387,7 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
       await _pullActivation(silent: storedAtOpen.isNotEmpty);
       if (!mounted) return;
       if (isTv(context)) {
-        final showActivationAction =
-            _activationUiEnforced &&
-            (_activationStatus.trim() != 'نشط' ||
-                shouldOfferActivationRenewal(_activationExpiryDate));
-        if (showActivationAction && _tvNodeFocusable(_activationButtonFocus)) {
-          _activationButtonFocus.requestFocus();
-        } else {
-          _tvRequestFocus(_tvPreferredTopChipFocus());
-        }
+        _manualUsernameFocus.requestFocus();
       }
       if (!mounted) return;
       final authState = context.read<AuthBloc>().state;

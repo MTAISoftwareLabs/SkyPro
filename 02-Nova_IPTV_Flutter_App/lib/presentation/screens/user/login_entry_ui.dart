@@ -251,169 +251,67 @@ BoxDecoration _loginGlassDecoration({
 class _LoginEntryHero extends StatelessWidget {
   const _LoginEntryHero({
     required this.isTvDevice,
-    this.connectStyle = true,
     this.compact = false,
   });
 
   final bool isTvDevice;
-  final bool connectStyle;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    if (!connectStyle) {
-      return _legacyWelcomeHero(context);
-    }
     final logoSize = compact
-        ? (isTvDevice ? 36.0 : 32.0)
-        : (isTvDevice ? 48.0 : 40.0);
+        ? (isTvDevice ? 52.0 : 44.0)
+        : (isTvDevice ? 68.0 : 56.0);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: logoSize,
-              height: logoSize,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: kColorPrimary.withValues(alpha: 0.28),
-                    blurRadius: 18,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Image(
-                image: const AssetImage(kIconSplash),
-                fit: BoxFit.cover,
-                width: logoSize,
-                height: logoSize,
-              ),
+        Container(
+          width: logoSize,
+          height: logoSize,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: kSkyProBlue.withValues(alpha: 0.6),
+              width: 1.5,
             ),
-            SizedBox(width: isTvDevice ? 12 : 10),
-            Flexible(
-              child: Text(
-                kAppName.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Get.textTheme.titleMedium!.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                  fontSize: compact
-                      ? (isTvDevice ? 15.0 : 13.0)
-                      : (isTvDevice ? 18.0 : 15.0),
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(
-          height: compact ? (isTvDevice ? 8 : 6) : (isTvDevice ? 14 : 10),
-        ),
-        Text(
-          'entry_connect_title'.tr,
-          textAlign: TextAlign.center,
-          style: Get.textTheme.headlineSmall!.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: compact
-                ? (isTvDevice ? 22.0 : 18.0)
-                : (isTvDevice ? 28.0 : 22.0),
-            letterSpacing: 0.6,
-            height: 1.15,
-          ),
-        ),
-        if (!compact) ...[
-          SizedBox(
-            height: LoginPremiumTypography.gap(isTvDevice, tv: 8, mobile: 5),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: isTvDevice ? 20 : 8),
-            child: Text(
-              'entry_connect_subtitle'.tr,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Get.textTheme.bodyMedium!.copyWith(
-                color: Colors.white.withValues(alpha: 0.72),
-                height: 1.35,
-                fontSize: LoginPremiumTypography.subtitle(isTvDevice),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _legacyWelcomeHero(BuildContext context) {
-    final fpSize = isTvDevice ? 56.0 : 44.0;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: fpSize + 36,
-          height: fpSize + 28,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              ...List.generate(3, (i) {
-                final scale = 1.0 + i * 0.18;
-                return Container(
-                  width: fpSize * scale,
-                  height: fpSize * scale,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: LoginPremiumColors.gold.withValues(
-                        alpha: 0.22 - i * 0.05,
-                      ),
-                      width: 1.2,
-                    ),
-                  ),
-                );
-              }),
-              Container(
-                width: fpSize,
-                height: fpSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      LoginPremiumColors.gold.withValues(alpha: 0.28),
-                      LoginPremiumColors.gold.withValues(alpha: 0.05),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: LoginPremiumColors.gold.withValues(alpha: 0.35),
-                      blurRadius: 28,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  LucideIcons.fingerprint_pattern,
-                  size: fpSize * 0.52,
-                  color: LoginPremiumColors.gold,
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: kSkyProBlue.withValues(alpha: 0.4),
+                blurRadius: 22,
+                spreadRadius: 2,
               ),
             ],
           ),
+          clipBehavior: Clip.antiAlias,
+          child: Image.asset(
+            kIconSplash,
+            fit: BoxFit.contain,
+          ),
         ),
-        SizedBox(height: isTvDevice ? 8 : 6),
+        SizedBox(
+          height: compact ? (isTvDevice ? 8 : 6) : (isTvDevice ? 12 : 10),
+        ),
         Text(
-          'entry_title'.tr,
+          kAppName.toUpperCase(),
           textAlign: TextAlign.center,
-          style: Get.textTheme.headlineSmall!.copyWith(
+          style: Get.textTheme.headlineMedium!.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: LoginPremiumTypography.title(isTvDevice),
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.8,
+            fontSize: compact
+                ? (isTvDevice ? 20.0 : 18.0)
+                : (isTvDevice ? 26.0 : 22.0),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'entry_method_xtream_hint'.tr, // "Username & Password"
+          textAlign: TextAlign.center,
+          style: Get.textTheme.bodyMedium!.copyWith(
+            color: kSkyProSilver.withValues(alpha: 0.8),
+            fontWeight: FontWeight.w600,
+            fontSize: isTvDevice ? 14.0 : 12.5,
+            letterSpacing: 0.6,
           ),
         ),
       ],
@@ -808,352 +706,6 @@ class _LoginTrustBar extends StatelessWidget {
   }
 }
 
-class _LoginEntryActivationPremium extends StatelessWidget {
-  const _LoginEntryActivationPremium({
-    required this.status,
-    required this.expiryDate,
-    required this.onActivate,
-    required this.showActivateButton,
-    this.isTvDevice = false,
-    this.activateButtonFocusNode,
-    this.activateButtonOnKeyEvent,
-  });
-
-  final String status;
-  final String expiryDate;
-  final VoidCallback onActivate;
-  final bool showActivateButton;
-  final bool isTvDevice;
-  final FocusNode? activateButtonFocusNode;
-  final FocusOnKeyEventCallback? activateButtonOnKeyEvent;
-
-  Color _statusColor() {
-    switch (status) {
-      case 'نشط':
-        return LoginPremiumColors.greenActive;
-      case 'منتهي':
-        return Colors.orange;
-      case 'محظور':
-        return Colors.red;
-      case 'checking':
-      case 'جاري التحقق...':
-        return const Color(0xFF42A5F5);
-      default:
-        return Colors.grey;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _buildTopPill(context);
-  }
-
-  Widget _buildTopPill(BuildContext context) {
-    final color = _statusColor();
-    final isActive = status == 'نشط';
-    final showRenew =
-        isActive &&
-        showActivateButton &&
-        shouldOfferActivationRenewal(expiryDate);
-    final showActionButton = (showActivateButton && !isActive) || showRenew;
-    final remaining = expiryDate.trim().isNotEmpty
-        ? parseActivationRemaining(expiryDate)
-        : null;
-    final remainingLabel = remaining == null
-        ? ''
-        : formatActivationPillRemaining(remaining);
-    final remainingAccent = remaining == null
-        ? color
-        : remaining.isLifetime
-        ? const Color(0xFFFBBF24)
-        : (showRenew ? Colors.orangeAccent : LoginPremiumColors.greenActive);
-    final pct = activationProgressFraction(remaining);
-
-    final pill = Container(
-      constraints: BoxConstraints(
-        maxWidth: isTvDevice ? 300 : 240,
-        minWidth: isTvDevice ? 160 : 140,
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: isTvDevice ? 12 : 10,
-        vertical: isTvDevice ? 7 : 6,
-      ),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: color.withValues(alpha: 0.10),
-        border: Border.all(
-          color: color.withValues(alpha: isActive ? 0.45 : 0.28),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isActive
-                    ? LucideIcons.circle_check
-                    : status == 'محظور'
-                    ? LucideIcons.ban
-                    : LucideIcons.circle_alert,
-                color: color,
-                size: isTvDevice ? 14 : 13,
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  activationStatusKey(status).tr.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w900,
-                    fontSize: isTvDevice ? 12 : 11,
-                    letterSpacing: 0.3,
-                    height: 1.1,
-                  ),
-                ),
-              ),
-              if (remainingLabel.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Container(
-                    width: 1,
-                    height: 12,
-                    color: Colors.white.withValues(alpha: 0.22),
-                  ),
-                ),
-                Flexible(
-                  child: Text(
-                    remainingLabel.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      fontWeight: FontWeight.w800,
-                      fontSize: isTvDevice ? 11.5 : 10.5,
-                      letterSpacing: 0.2,
-                      height: 1.1,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          if (remaining != null && (isActive || remaining.isValid)) ...[
-            const SizedBox(height: 5),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: SizedBox(
-                height: 3,
-                child: LinearProgressIndicator(
-                  value: pct,
-                  backgroundColor: Colors.white.withValues(alpha: 0.10),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    remainingAccent.withValues(alpha: 0.95),
-                  ),
-                ),
-              ),
-            ),
-          ],
-          if (showActionButton) ...[
-            const SizedBox(height: 6),
-            _ActivateAppPremiumButton(
-              focusNode: activateButtonFocusNode,
-              onTap: onActivate,
-              isTvDevice: isTvDevice,
-              compact: true,
-              onKeyEvent: activateButtonOnKeyEvent,
-              label: showRenew ? 'renew_activation'.tr : 'activate_app'.tr,
-              icon: showRenew
-                  ? LucideIcons.refresh_cw
-                  : LucideIcons.shield_check,
-            ),
-          ],
-        ],
-      ),
-    );
-
-    return pill;
-  }
-}
-
-/// زر تفعيل عصري مع أيقونة وهالة وتكبير 1.08 عند التركيز بالريموت.
-class _ActivateAppPremiumButton extends StatefulWidget {
-  const _ActivateAppPremiumButton({
-    required this.onTap,
-    required this.isTvDevice,
-    this.focusNode,
-    this.onKeyEvent,
-    this.label,
-    this.icon,
-    this.compact = false,
-  });
-
-  final VoidCallback onTap;
-  final bool isTvDevice;
-  final FocusNode? focusNode;
-  final FocusOnKeyEventCallback? onKeyEvent;
-  final String? label;
-  final IconData? icon;
-  final bool compact;
-
-  @override
-  State<_ActivateAppPremiumButton> createState() =>
-      _ActivateAppPremiumButtonState();
-}
-
-class _ActivateAppPremiumButtonState extends State<_ActivateAppPremiumButton> {
-  bool _focused = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<int>(
-      valueListenable: homeThemeRevision,
-      builder: (context, _, _) {
-        final focusColor = kColorFocus;
-        final btnH = widget.compact ? 32.0 : (widget.isTvDevice ? 40.0 : 36.0);
-        final iconSize = widget.compact
-            ? 14.0
-            : (widget.isTvDevice ? 17.0 : 15.0);
-        final radius = 11.0;
-        final label = (widget.label ?? '').trim().isEmpty
-            ? 'activate_app'.tr
-            : widget.label!.trim();
-        final icon = widget.icon ?? LucideIcons.shield_check;
-        final keyHandler =
-            widget.onKeyEvent ??
-            (FocusNode node, KeyEvent event) =>
-                settingsTvActivateOnSelect(event, widget.onTap);
-        final node = widget.focusNode;
-        if (node != null) {
-          node.onKeyEvent = keyHandler;
-        }
-
-        return Align(
-          alignment: Alignment.center,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: widget.isTvDevice ? 260 : 200,
-              minHeight: btnH,
-            ),
-            child: Focus(
-          focusNode: node,
-          onKeyEvent: node == null ? keyHandler : null,
-          descendantsAreFocusable: false,
-          descendantsAreTraversable: false,
-          onFocusChange: (v) {
-            if (_focused == v) return;
-            setState(() => _focused = v);
-          },
-          child: AnimatedScale(
-            scale: kReduceFocusMotion
-                ? 1.0
-                : (_focused ? (widget.compact ? 1.02 : 1.05) : 1.0),
-            duration: AppPerf.instance.focusAnimDuration,
-            curve: Curves.easeOutCubic,
-            child: AnimatedContainer(
-              duration: AppPerf.instance.focusAnimDuration,
-              curve: Curves.easeOutCubic,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(radius),
-                border: _focused
-                    ? Border.all(color: focusColor, width: 2)
-                    : null,
-                boxShadow: _focused
-                    ? (kReduceFocusMotion
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: focusColor.withValues(alpha: 0.32),
-                              blurRadius: 8,
-                              spreadRadius: 0,
-                            ),
-                          ])
-                    : [
-                        BoxShadow(
-                          color: LoginPremiumColors.gold.withValues(
-                            alpha: 0.18,
-                          ),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(radius),
-                child: InkWell(
-                  onTap: widget.onTap,
-                  canRequestFocus: false,
-                  borderRadius: BorderRadius.circular(radius),
-                  focusColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                  splashColor: focusColor.withValues(alpha: 0.12),
-                  child: Ink(
-                    height: btnH,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(radius),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          LoginPremiumColors.gold,
-                          LoginPremiumColors.goldDark,
-                        ],
-                      ),
-                      border: Border.all(
-                        color: _focused
-                            ? focusColor
-                            : Colors.white.withValues(alpha: 0.18),
-                        width: _focused ? 2 : 1,
-                      ),
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: widget.compact
-                          ? (widget.isTvDevice ? 10 : 9)
-                          : 14,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(icon, size: iconSize, color: Colors.black87),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            softWrap: false,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: Get.textTheme.bodyMedium!.copyWith(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w800,
-                              fontSize: widget.compact
-                                  ? (widget.isTvDevice ? 12.5 : 12)
-                                  : (widget.isTvDevice ? 14 : 13),
-                              letterSpacing: 0.1,
-                              height: 1.1,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        ),
-        );
-      },
-    );
-  }
-}
 
 class _LoginEntryDisclaimerCard extends StatelessWidget {
   const _LoginEntryDisclaimerCard({this.isTvDevice = false});
@@ -1589,684 +1141,248 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                       },
                       builder: (context, authState) {
                         final loadingAuth = authState is AuthLoading;
-                        // SkyPro clean login: always show username & password, hide M3U/QR/Codes
-                        const showManualCreds = true;
-                        final allowUsernameLogin = true;
-                        const tvKeypadMode = false;
-                        const showMethodsGrid = false;
-                        final hPad = isTvDevice ? 36.0 : 20.0;
-                        final screenW = MediaQuery.sizeOf(context).width;
-                        final cardMaxWidth = showMethodsGrid
-                            ? (screenW - hPad * 2).clamp(720.0, 1400.0)
-                            : (isTvDevice ? 720.0 : 520.0);
+                        final hPad = isTvDevice ? 32.0 : 16.0;
+                        final cardMaxWidth = isTvDevice ? 480.0 : 380.0;
 
-                        final bottomPad = (isTvDevice && _showTvCodeKeypad)
-                            ? _LoginEntryScreenState._tvKeypadReserveHeight + 12
-                            : 12.0;
+                        final topSection = Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isTvDevice ? 16 : 8,
+                          ),
+                          child: Row(
+                            children: [
+                              legalChip,
+                              const Spacer(),
+                              langChip,
+                              SizedBox(width: isTvDevice ? 8 : 6),
+                              manageChip,
+                              SizedBox(width: isTvDevice ? 8 : 6),
+                              supportChip,
+                            ],
+                          ),
+                        );
 
-                        final showActivationPill =
-                            shouldShowActivationStatusBanner(_activationStatus);
-                        final activationPill = showActivationPill
-                            ? tvTraverseOrder(
-                                5,
-                                _LoginEntryActivationPremium(
-                                  status: _activationStatus,
-                                  expiryDate: _activationExpiryDate,
-                                  onActivate: _activateDeviceFromApp,
-                                  showActivateButton:
-                                      _activationUiEnforced &&
-                                      !tvKeypadMode &&
-                                      (_activationStatus.trim() != 'نشط' ||
-                                          shouldOfferActivationRenewal(
-                                            _activationExpiryDate,
-                                          )),
-                                  isTvDevice: isTvDevice,
-                                  activateButtonFocusNode:
-                                      _activationUiEnforced &&
-                                          (_activationStatus.trim() != 'نشط' ||
-                                              shouldOfferActivationRenewal(
-                                                _activationExpiryDate,
-                                              ))
-                                      ? _activationButtonFocus
-                                      : null,
-                                  activateButtonOnKeyEvent:
-                                      _activationUiEnforced &&
-                                          (_activationStatus.trim() != 'نشط' ||
-                                              shouldOfferActivationRenewal(
-                                                _activationExpiryDate,
-                                              ))
-                                      ? (node, event) =>
-                                            _tvActivationKeyEvent(event)
-                                      : null,
+                        final formCard = AnimatedBuilder(
+                          animation: _manualCredsShakeController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(_manualCredsShakeOffset.value, 0),
+                              child: child,
+                            );
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isTvDevice ? 28 : 20,
+                              vertical: isTvDevice ? 24 : 18,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0C0D11).withValues(alpha: 0.92),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: kSkyProBlue.withValues(alpha: 0.45),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.8),
+                                  blurRadius: 32,
+                                  spreadRadius: 2,
+                                  offset: const Offset(0, 10),
                                 ),
-                              )
-                            : null;
-
-                        final topSection = Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
+                                BoxShadow(
+                                  color: kSkyProBlue.withValues(alpha: 0.18),
+                                  blurRadius: 24,
+                                  spreadRadius: 0,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                legalChip,
-                                if (activationPill != null) ...[
-                                  SizedBox(width: isTvDevice ? 8 : 6),
-                                  Flexible(
-                                    fit: FlexFit.loose,
-                                    child: Align(
-                                      alignment:
-                                          AlignmentDirectional.centerStart,
-                                      child: activationPill,
+                                _LoginEntryHero(isTvDevice: isTvDevice),
+                                SizedBox(height: isTvDevice ? 20 : 16),
+                                tvTraverseOrder(
+                                  1,
+                                  TextField(
+                                    controller: _manualUsernameController,
+                                    focusNode: _manualUsernameFocus,
+                                    keyboardType: TextInputType.text,
+                                    textInputAction: TextInputAction.next,
+                                    textAlign: TextAlign.center,
+                                    style: Get.textTheme.titleSmall!.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: LoginPremiumTypography.input(
+                                        isTvDevice,
+                                      ),
                                     ),
+                                    decoration: _loginPremiumFieldDecoration(
+                                      hint: "username".tr,
+                                      prefixIcon: LucideIcons.user,
+                                      isTvDevice: isTvDevice,
+                                    ),
+                                    onTap: () {
+                                      _manualUsernameFocus.requestFocus();
+                                      _showIme();
+                                    },
+                                    onSubmitted: (_) {
+                                      _manualPasswordFocus.requestFocus();
+                                      _showIme();
+                                    },
                                   ),
-                                ],
-                                const Spacer(),
-                                SizedBox(width: isTvDevice ? 8 : 6),
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: AlignmentDirectional.centerEnd,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      langChip,
-                                      SizedBox(width: isTvDevice ? 8 : 6),
-                                      manageChip,
-                                      SizedBox(width: isTvDevice ? 8 : 6),
-                                      supportChip,
-                                    ],
+                                ),
+                                SizedBox(height: isTvDevice ? 12 : 10),
+                                tvTraverseOrder(
+                                  2,
+                                  TextField(
+                                    controller: _manualPasswordController,
+                                    focusNode: _manualPasswordFocus,
+                                    obscureText: _isPasswordObscured,
+                                    keyboardType: TextInputType.visiblePassword,
+                                    textInputAction: TextInputAction.done,
+                                    textAlign: TextAlign.center,
+                                    style: Get.textTheme.titleSmall!.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: LoginPremiumTypography.input(
+                                        isTvDevice,
+                                      ),
+                                    ),
+                                    decoration: _loginPremiumFieldDecoration(
+                                      hint: "password".tr,
+                                      prefixIcon: LucideIcons.lock,
+                                      isTvDevice: isTvDevice,
+                                      suffixIcon: IconButton(
+                                        onPressed: _togglePasswordVisibility,
+                                        icon: Icon(
+                                          _isPasswordObscured
+                                              ? LucideIcons.eye_off
+                                              : LucideIcons.eye,
+                                          size: 18,
+                                          color: LoginPremiumColors.gold
+                                              .withValues(alpha: 0.9),
+                                        ),
+                                      ),
+                                    ),
+                                    onTap: () {
+                                      _manualPasswordFocus.requestFocus();
+                                      _showIme();
+                                    },
+                                    onSubmitted: (_) =>
+                                        _submitManualCredsAfterCode(),
+                                  ),
+                                ),
+                                SizedBox(height: isTvDevice ? 18 : 14),
+                                tvTraverseOrder(
+                                  3,
+                                  _LoginFocusShell(
+                                    focusNode: _manualLoginFocus,
+                                    borderRadius: 14,
+                                    enabled: !loadingAuth,
+                                    onTap: _submitManualCredsAfterCode,
+                                    onKeyEvent: _tvManualLoginKeyEvent,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: isTvDevice ? 15 : 13,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(14),
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            LoginPremiumColors.gold,
+                                            LoginPremiumColors.goldDark,
+                                          ],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: LoginPremiumColors.gold
+                                                .withValues(alpha: 0.35),
+                                            blurRadius: 16,
+                                            spreadRadius: 1,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          if (loadingAuth) ...[
+                                            const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                          ] else ...[
+                                            const Icon(
+                                              LucideIcons.log_in,
+                                              size: 18,
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
+                                          Text(
+                                            loadingAuth
+                                                ? "loading".tr
+                                                : "login".tr,
+                                            style: Get.textTheme.bodyLarge!
+                                                .copyWith(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize:
+                                                      LoginPremiumTypography
+                                                          .button(isTvDevice),
+                                                  letterSpacing: 0.5,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         );
-
-                        final middleContent = Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (!tvKeypadMode &&
-                                !(isTvDevice && showManualCreds))
-                              _LoginEntryHero(
-                                isTvDevice: isTvDevice,
-                                connectStyle: false,
-                              ),
-                            if (!tvKeypadMode &&
-                                !(isTvDevice && showManualCreds))
-                              SizedBox(
-                                height: LoginPremiumTypography.gap(
-                                  isTvDevice,
-                                  tv: 8,
-                                  mobile: 4,
-                                ),
-                              ),
-                            // أثناء التحميل: عطّل الأزرار فقط — لا تحجب الشاشة كاملة (مراجعة Play).
-                            Container(
-                                padding: EdgeInsets.all(
-                                  tvKeypadMode ? 0 : (isTvDevice ? 12 : 10),
-                                ),
-                                decoration: tvKeypadMode
-                                    ? null
-                                    : _loginGlassDecoration(radius: 22),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    tvTraverseOrder(
-                                      7,
-                                      TextField(
-                                        controller: _codeController,
-                                        focusNode: _codeFieldFocus,
-                                        readOnly: isTvDevice || loadingAuth,
-                                        showCursor: !isTvDevice && !loadingAuth,
-                                        enabled: !loadingAuth,
-                                        keyboardType: TextInputType.number,
-                                        textInputAction: TextInputAction.done,
-                                        maxLength: 6,
-                                        textAlign: TextAlign.center,
-                                        style: Get.textTheme.titleLarge!
-                                            .copyWith(
-                                              color: Colors.white,
-                                              letterSpacing: 4,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize:
-                                                  LoginPremiumTypography.input(
-                                                    isTvDevice,
-                                                  ),
-                                            ),
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter
-                                              .digitsOnly,
-                                        ],
-                                        decoration:
-                                            _loginPremiumFieldDecoration(
-                                              hint: 'access_code_hint'.tr,
-                                              prefixIcon: LucideIcons.hash,
-                                              isTvDevice: isTvDevice,
-                                              suffixIcon: isTvDevice
-                                                  ? Icon(
-                                                      LucideIcons.grid_3x3,
-                                                      size: 16,
-                                                      color: Colors.white
-                                                          .withValues(
-                                                            alpha: 0.45,
-                                                          ),
-                                                    )
-                                                  : null,
-                                            ).copyWith(counterText: ''),
-                                        onTap: () {
-                                          if (!isTvDevice || loadingAuth) {
-                                            return;
-                                          }
-                                          _openTvCodeKeypad();
-                                        },
-                                        onSubmitted: (_) => _verifyAccessCode(),
-                                      ),
-                                    ),
-                                    AnimatedSwitcher(
-                                      duration: Duration(
-                                        milliseconds: isTvDevice ? 200 : 280,
-                                      ),
-                                      switchInCurve: Curves.easeOutCubic,
-                                      switchOutCurve: Curves.easeInCubic,
-                                      layoutBuilder: (currentChild, previousChildren) {
-                                        return Stack(
-                                          alignment: Alignment.topCenter,
-                                          children: [
-                                            ...previousChildren,
-                                            ?currentChild,
-                                          ],
-                                        );
-                                      },
-                                      transitionBuilder: (child, animation) {
-                                        final slide = Tween<Offset>(
-                                          begin: const Offset(0, 0.04),
-                                          end: Offset.zero,
-                                        ).animate(animation);
-                                        return FadeTransition(
-                                          opacity: animation,
-                                          child: SlideTransition(
-                                            position: slide,
-                                            child: child,
-                                          ),
-                                        );
-                                      },
-                                      child: showManualCreds
-                                          ? AnimatedBuilder(
-                                              key: const ValueKey(
-                                                'manual-creds-visible',
-                                              ),
-                                              animation:
-                                                  _manualCredsShakeController,
-                                              builder: (context, child) {
-                                                return Transform.translate(
-                                                  offset: Offset(
-                                                    _manualCredsShakeOffset
-                                                        .value,
-                                                    0,
-                                                  ),
-                                                  child: child,
-                                                );
-                                              },
-                                              child: Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: 14,
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment
-                                                          .stretch,
-                                                  children: [
-                                                    tvTraverseOrder(
-                                                      9,
-                                                      TextField(
-                                                        controller:
-                                                            _manualUsernameController,
-                                                        focusNode:
-                                                            _manualUsernameFocus,
-                                                        textInputAction:
-                                                            TextInputAction
-                                                                .next,
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: Get
-                                                            .textTheme
-                                                            .titleSmall!
-                                                            .copyWith(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                            ),
-                                                        decoration:
-                                                            _loginPremiumFieldDecoration(
-                                                              hint:
-                                                                  'username'.tr,
-                                                              prefixIcon:
-                                                                  LucideIcons
-                                                                      .user,
-                                                              isTvDevice:
-                                                                  isTvDevice,
-                                                            ),
-                                                        onSubmitted: (_) {
-                                                          _manualPasswordFocus
-                                                              .requestFocus();
-                                                        },
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 8),
-                                                    tvTraverseOrder(
-                                                      10,
-                                                      TextField(
-                                                        controller:
-                                                            _manualPasswordController,
-                                                        focusNode:
-                                                            _manualPasswordFocus,
-                                                        obscureText:
-                                                            _isPasswordObscured,
-                                                        textInputAction:
-                                                            TextInputAction
-                                                                .done,
-                                                        textAlign:
-                                                            TextAlign.center,
-                                                        style: Get
-                                                            .textTheme
-                                                            .titleSmall!
-                                                            .copyWith(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                            ),
-                                                        decoration: _loginPremiumFieldDecoration(
-                                                          hint: 'password'.tr,
-                                                          prefixIcon:
-                                                              LucideIcons.lock,
-                                                          isTvDevice:
-                                                              isTvDevice,
-                                                          suffixIcon: IconButton(
-                                                            onPressed: () {
-                                                              _togglePasswordVisibility();
-                                                            },
-                                                            icon: Icon(
-                                                              _isPasswordObscured
-                                                                  ? LucideIcons
-                                                                        .eye_off
-                                                                  : LucideIcons
-                                                                        .eye,
-                                                              size: 16,
-                                                              color:
-                                                                  LoginPremiumColors
-                                                                      .gold
-                                                                      .withValues(
-                                                                        alpha:
-                                                                            0.9,
-                                                                      ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                        onSubmitted: (_) =>
-                                                            _submitManualCredsAfterCode(),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 10),
-                                                    tvTraverseOrder(
-                                                      11,
-                                                      _LoginFocusShell(
-                                                        focusNode:
-                                                            _manualLoginFocus,
-                                                        borderRadius: 14,
-                                                        enabled: !loadingAuth,
-                                                        onTap:
-                                                            _submitManualCredsAfterCode,
-                                                        onKeyEvent:
-                                                            _tvManualLoginKeyEvent,
-                                                        child: Container(
-                                                          width:
-                                                              double.infinity,
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                vertical: 12,
-                                                              ),
-                                                          decoration: BoxDecoration(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  14,
-                                                                ),
-                                                            gradient: LinearGradient(
-                                                              colors: [
-                                                                LoginPremiumColors
-                                                                    .gold,
-                                                                LoginPremiumColors
-                                                                    .goldDark,
-                                                              ],
-                                                            ),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              const Icon(
-                                                                LucideIcons
-                                                                    .log_in,
-                                                                size: 16,
-                                                                color: Colors
-                                                                    .black87,
-                                                              ),
-                                                              const SizedBox(
-                                                                width: 8,
-                                                              ),
-                                                              Text(
-                                                                'login'.tr,
-                                                                style: const TextStyle(
-                                                                  color: Colors
-                                                                      .black87,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w800,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            )
-                                          : const SizedBox.shrink(
-                                              key: ValueKey(
-                                                'manual-creds-hidden',
-                                              ),
-                                            ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        );
-
-                        Widget buildMethodsOnePage({
-                          required bool compact,
-                          required double gap,
-                        }) {
-                          _LoginMethodCard method({
-                            required FocusNode focusNode,
-                            required IconData icon,
-                            required String titleKey,
-                            required String hintKey,
-                            required String descKey,
-                            required VoidCallback onTap,
-                            required double order,
-                            KeyEventResult Function(FocusNode, KeyEvent)?
-                            onKeyEvent,
-                            bool recommended = false,
-                          }) {
-                            return _LoginMethodCard(
-                              focusNode: focusNode,
-                              icon: icon,
-                              title: titleKey.tr,
-                              hint: hintKey.tr,
-                              description: descKey.tr,
-                              onTap: onTap,
-                              isTvDevice: isTvDevice,
-                              traversalOrder: order,
-                              onKeyEvent: onKeyEvent,
-                              expand: true,
-                              compact: compact,
-                              recommended: recommended,
-                            );
-                          }
-
-                          final xtreamCard = allowUsernameLogin
-                              ? method(
-                                  focusNode: _loginRouteFocus,
-                                  icon: LucideIcons.lock_keyhole,
-                                  titleKey: 'entry_method_xtream',
-                                  hintKey: 'entry_method_xtream_hint',
-                                  descKey: 'entry_method_xtream_desc',
-                                  onTap: _openCredentialsLogin,
-                                  order: 6,
-                                  onKeyEvent: _tvLoginRouteKeyEvent,
-                                  recommended: true,
-                                )
-                              : null;
-                          final m3uCard = method(
-                            focusNode: _m3uMethodFocus,
-                            icon: LucideIcons.link_2,
-                            titleKey: 'entry_method_m3u',
-                            hintKey: 'entry_method_m3u_hint',
-                            descKey: 'entry_method_m3u_desc',
-                            onTap: _openM3uLogin,
-                            order: 7,
-                            onKeyEvent: _tvM3uMethodKeyEvent,
-                          );
-                          final codeCard = method(
-                            focusNode: _codeMethodFocus,
-                            icon: LucideIcons.ticket,
-                            titleKey: 'entry_method_code',
-                            hintKey: 'entry_method_code_hint',
-                            descKey: 'entry_method_code_desc',
-                            onTap: _openPlaylistCodeEntry,
-                            order: 8,
-                            onKeyEvent: _tvCodeMethodKeyEvent,
-                          );
-                          final qrCard = method(
-                            focusNode: _qrMethodFocus,
-                            icon: LucideIcons.qr_code,
-                            titleKey: 'entry_method_qr',
-                            hintKey: 'entry_method_qr_hint',
-                            descKey: 'entry_method_qr_desc',
-                            onTap: () {
-                              unawaited(_openDeviceQrFromEntry());
-                            },
-                            order: 9,
-                            onKeyEvent: _tvQrMethodKeyEvent,
-                          );
-                          final webCard = method(
-                            focusNode: _webMethodFocus,
-                            icon: LucideIcons.globe,
-                            titleKey: 'entry_method_web',
-                            hintKey: 'entry_method_web_hint',
-                            descKey: 'entry_method_web_desc',
-                            onTap: () {
-                              unawaited(_openWebPlaylistsFromEntry());
-                            },
-                            order: 10,
-                            onKeyEvent: _tvWebMethodKeyEvent,
-                          );
-                          final downloadsCard = method(
-                            focusNode: _downloadsMethodFocus,
-                            icon: LucideIcons.download,
-                            titleKey: 'entry_method_downloads',
-                            hintKey: 'entry_method_downloads_hint',
-                            descKey: 'entry_method_downloads_desc',
-                            onTap: () {
-                              Get.toNamed(screenDownloads);
-                            },
-                            order: 11,
-                            onKeyEvent: _tvDownloadsMethodKeyEvent,
-                          );
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _LoginEntryHero(
-                                isTvDevice: isTvDevice,
-                                compact: compact,
-                              ),
-                              SizedBox(height: compact ? 8 : gap),
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: xtreamCard != null
-                                          ? Row(
-                                              children: [
-                                                Expanded(child: xtreamCard),
-                                                SizedBox(width: gap),
-                                                Expanded(child: m3uCard),
-                                              ],
-                                            )
-                                          : m3uCard,
-                                    ),
-                                    SizedBox(height: gap),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Row(
-                                        children: [
-                                          Expanded(child: codeCard),
-                                          SizedBox(width: gap),
-                                          Expanded(child: qrCard),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(height: gap),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Row(
-                                        children: [
-                                          Expanded(child: webCard),
-                                          SizedBox(width: gap),
-                                          Expanded(child: downloadsCard),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              _LoginTrustBar(
-                                isTvDevice: isTvDevice,
-                                compact: compact,
-                              ),
-                            ],
-                          );
-                        }
-
-                        // على التلفاز عند host-only (بدون hero): ارفع المحتوى للأعلى
-                        final contentAlignment = (isTvDevice && showManualCreds)
-                            ? Alignment.topCenter
-                            : Alignment.center;
 
                         final pageBody = Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                hPad,
-                                isTvDevice ? 8 : 0,
-                                hPad,
-                                tvKeypadMode
-                                    ? LoginPremiumTypography.gap(
-                                        isTvDevice,
-                                        tv: 16,
-                                        mobile: 12,
-                                      )
-                                    : 0,
+                            topSection,
+                            Expanded(
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: hPad,
+                                    vertical: 8,
+                                  ),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxWidth: cardMaxWidth,
+                                    ),
+                                    child: formCard,
+                                  ),
+                                ),
                               ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 8),
                               child: Center(
                                 child: ConstrainedBox(
                                   constraints: BoxConstraints(
                                     maxWidth: cardMaxWidth,
                                   ),
-                                  child: topSection,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: AnimatedPadding(
-                                duration: const Duration(milliseconds: 260),
-                                curve: Curves.easeOutCubic,
-                                padding: tvKeypadMode
-                                    ? EdgeInsets.fromLTRB(
-                                        hPad,
-                                        LoginPremiumTypography.gap(
-                                          isTvDevice,
-                                          tv: 24,
-                                          mobile: 18,
-                                        ),
-                                        hPad,
-                                        _LoginEntryScreenState
-                                                ._tvKeypadReserveHeight +
-                                            24,
-                                      )
-                                    : EdgeInsets.zero,
-                                child: tvKeypadMode
-                                    ? Align(
-                                        alignment: Alignment.topCenter,
-                                        child: ConstrainedBox(
-                                          constraints: BoxConstraints(
-                                            maxWidth: cardMaxWidth,
-                                          ),
-                                          child: middleContent,
-                                        ),
-                                      )
-                                    : showMethodsGrid
-                                    ? Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: hPad,
-                                        ),
-                                        child: Center(
-                                          child: ConstrainedBox(
-                                            constraints: BoxConstraints(
-                                              maxWidth: cardMaxWidth,
-                                            ),
-                                            child: LayoutBuilder(
-                                              builder: (context, constraints) {
-                                                final h = constraints.maxHeight;
-                                                final compact =
-                                                    h <
-                                                    (isTvDevice ? 520 : 420);
-                                                final gap = compact
-                                                    ? (isTvDevice ? 10.0 : 8.0)
-                                                    : (isTvDevice
-                                                          ? 14.0
-                                                          : 10.0);
-                                                return buildMethodsOnePage(
-                                                  compact: compact,
-                                                  gap: gap,
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : _AuthPremiumOnePageFit(
-                                        maxWidth: cardMaxWidth,
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: hPad,
-                                        ),
-                                        alignment: contentAlignment,
-                                        child: middleContent,
-                                      ),
-                              ),
-                            ),
-                            // Disclaimer ثابت في الأسفل (يظهر أيضاً بعد كود host-only)
-                            if (!tvKeypadMode)
-                              Padding(
-                                padding: EdgeInsets.fromLTRB(
-                                  hPad,
-                                  0,
-                                  hPad,
-                                  bottomPad,
-                                ),
-                                child: Center(
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      maxWidth: cardMaxWidth,
-                                    ),
-                                    child: _LoginEntryDisclaimerCard(
-                                      isTvDevice: isTvDevice,
-                                    ),
+                                  child: _LoginEntryDisclaimerCard(
+                                    isTvDevice: isTvDevice,
                                   ),
                                 ),
                               ),
+                            ),
                           ],
                         );
 
@@ -2319,7 +1435,7 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                                             const SizedBox(width: 12),
                                             Flexible(
                                               child: Text(
-                                                'loading'.tr,
+                                                "loading".tr,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                                 style: TextStyle(
@@ -2333,104 +1449,6 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                                               ),
                                             ),
                                           ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (isTvDevice)
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                child: ExcludeFocus(
-                                  excluding: !_showTvCodeKeypad,
-                                  child: SafeArea(
-                                    top: false,
-                                    child: IgnorePointer(
-                                      ignoring: !_showTvCodeKeypad,
-                                      child: Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                          12,
-                                          0,
-                                          12,
-                                          8,
-                                        ),
-                                        child: AnimatedOpacity(
-                                          opacity: _showTvCodeKeypad ? 1 : 0,
-                                          duration: const Duration(
-                                            milliseconds: 220,
-                                          ),
-                                          curve: Curves.easeOutCubic,
-                                          child: AnimatedSlide(
-                                            duration: const Duration(
-                                              milliseconds: 260,
-                                            ),
-                                            curve: Curves.easeOutCubic,
-                                            offset: _showTvCodeKeypad
-                                                ? Offset.zero
-                                                : const Offset(0, 0.2),
-                                            child: Align(
-                                              alignment: Alignment.bottomCenter,
-                                              child: FractionallySizedBox(
-                                                widthFactor: 0.5,
-                                                child: DecoratedBox(
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFF1A1D24,
-                                                    ).withValues(alpha: 0.96),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          16,
-                                                        ),
-                                                    border: Border.all(
-                                                      color: Colors.white
-                                                          .withValues(
-                                                            alpha: 0.16,
-                                                          ),
-                                                    ),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.black
-                                                            .withValues(
-                                                              alpha: 0.4,
-                                                            ),
-                                                        blurRadius: 20,
-                                                        offset: const Offset(
-                                                          0,
-                                                          8,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                          10,
-                                                        ),
-                                                    child: _TvAccessCodeKeypad(
-                                                      visible:
-                                                          _showTvCodeKeypad,
-                                                      codeLength:
-                                                          _codeController
-                                                              .text
-                                                              .length,
-                                                      onDigit: _tvAppendDigit,
-                                                      onBackspace: _tvBackspace,
-                                                      onOk:
-                                                          loadingAuth ||
-                                                              _codeVerifyLoading
-                                                          ? null
-                                                          : _verifyAccessCode,
-                                                      onExitUp:
-                                                          _tvFocusExitKeypadUpward,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
                                         ),
                                       ),
                                     ),
