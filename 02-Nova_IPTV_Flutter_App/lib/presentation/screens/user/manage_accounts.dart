@@ -748,7 +748,7 @@ class _ManageAccountsScreenState extends State<ManageAccountsScreen>
                       ),
                     ),
                   ),
-                  SizedBox(height: 2.h),
+                  SizedBox(height: 1.h),
                   Expanded(
                     child:
                         _accounts.isEmpty
@@ -868,7 +868,7 @@ class _ManageAccountsScreenState extends State<ManageAccountsScreen>
                       child: CircularProgressIndicator(),
                     ),
                   Padding(
-                    padding: EdgeInsets.fromLTRB(8.w, 1.h, 8.w, 3.h),
+                    padding: EdgeInsets.fromLTRB(8.w, 0.5.h, 8.w, 1.5.h),
                     child: Column(
                       children: [
                         tv
@@ -1005,16 +1005,19 @@ class _AccountAvatarCard extends StatelessWidget {
                 width: 2.5,
               ),
             ),
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.topCenter,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 96,
-                    height: 96,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: 82,
+                        height: 82,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: account.hasCustomAvatar
@@ -1048,7 +1051,7 @@ class _AccountAvatarCard extends StatelessWidget {
                               account.initial,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 34,
+                                fontSize: 28,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -1081,7 +1084,7 @@ class _AccountAvatarCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text(
                 account.displayName,
                 textAlign: TextAlign.center,
