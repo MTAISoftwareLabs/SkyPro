@@ -100,7 +100,9 @@ try {
                 "SELECT COUNT(*) FROM activated_devices
                  WHERE (account_key = ? OR account_key = ?)
                    AND device_id <> ?
-                   AND (device_id NOT LIKE 'line_%')"
+                   AND (device_id NOT LIKE 'line_%')
+                   AND (status = 'active' OR status IS NULL)
+                   AND (expiry_date IS NULL OR expiry_date > NOW())"
             );
             $countStmt->execute([$newKey, $legacyAccountKey, $deviceId]);
         } else {
@@ -108,7 +110,9 @@ try {
                 "SELECT COUNT(*) FROM activated_devices
                  WHERE account_key = ?
                    AND device_id <> ?
-                   AND (device_id NOT LIKE 'line_%')"
+                   AND (device_id NOT LIKE 'line_%')
+                   AND (status = 'active' OR status IS NULL)
+                   AND (expiry_date IS NULL OR expiry_date > NOW())"
             );
             $countStmt->execute([$newKey, $deviceId]);
         }

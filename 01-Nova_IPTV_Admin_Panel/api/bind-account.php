@@ -49,6 +49,16 @@ try {
     $maxDevices = isset($settings['max_devices_per_user']) ? (int)$settings['max_devices_per_user'] : 1;
     if ($maxDevices <= 0) $maxDevices = 1;
 
+    // دعم max_connections المحدد في سجل العميل (iptv_customers) إن كان أعلى من الإعداد العام
+    try {
+        $custStmt = $conn->prepare("SELECT max_connections FROM iptv_customers WHERE username = ? LIMIT 1");
+        $custStmt->execute([$username]);
+        $custRow = $custStmt->fetch(PDO::FETCH_ASSOC);
+        if ($custRow && isset($custRow['max_connections']) && (int)$custRow['max_connections'] > 0) {
+            $maxDevices = max($maxDevices, (int)$custRow['max_connections']);
+        }
+    } catch (Throwable $e) {}
+
     $accountKey = build_account_key($conn, $username, $password);
     // Legacy plaintext account_key (username:password) — still match for existing rows.
     $legacyAccountKey = $username . ':' . $password;
@@ -71,12 +81,14 @@ try {
 
     $sameAccount = ($currentKey !== '' && ($currentKey === $accountKey || $currentKey === $legacyAccountKey));
 
-    // عدّ جميع الأجهزة المرتبطة بنفس الحساب (صيغة جديدة + قديمة) باستثناء هذا الجهاز والخطوط الافتراضية
+    // عدّ جميع الأجهزة النشطة المرتبطة بنفس الحساب باستثناء هذا الجهاز والخطوط الافتراضية
     $countStmt = $conn->prepare(
         "SELECT COUNT(*) FROM activated_devices
          WHERE (account_key = ? OR account_key = ?)
            AND device_id <> ?
-           AND (device_id NOT LIKE 'line_%')"
+           AND (device_id NOT LIKE 'line_%')
+           AND (status = 'active' OR status IS NULL)
+           AND (expiry_date IS NULL OR expiry_date > NOW())"
     );
     $countStmt->execute([$accountKey, $legacyAccountKey, $deviceId]);
     $activeForAccount = (int)$countStmt->fetchColumn();

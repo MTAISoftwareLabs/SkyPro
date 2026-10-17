@@ -1161,6 +1161,9 @@ extension _LoginEntryPremiumLayout on _LoginEntryScreenState {
                             if (state.message != 'LogOut' &&
                                 state.message !=
                                     'host_only_needs_credentials') {
+                              if (_deviceId.isNotEmpty) {
+                                unawaited(_activationApi.clearPlaylistUrl(_deviceId));
+                              }
                               showWarningToast(
                                 context,
                                 'login_failed'.tr,
