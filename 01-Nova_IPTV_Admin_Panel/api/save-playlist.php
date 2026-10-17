@@ -99,14 +99,16 @@ try {
             $countStmt = $conn->prepare(
                 "SELECT COUNT(*) FROM activated_devices
                  WHERE (account_key = ? OR account_key = ?)
-                   AND device_id <> ?"
+                   AND device_id <> ?
+                   AND (device_id NOT LIKE 'line_%')"
             );
             $countStmt->execute([$newKey, $legacyAccountKey, $deviceId]);
         } else {
             $countStmt = $conn->prepare(
                 "SELECT COUNT(*) FROM activated_devices
                  WHERE account_key = ?
-                   AND device_id <> ?"
+                   AND device_id <> ?
+                   AND (device_id NOT LIKE 'line_%')"
             );
             $countStmt->execute([$newKey, $deviceId]);
         }

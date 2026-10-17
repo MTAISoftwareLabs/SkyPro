@@ -609,20 +609,6 @@ if (!function_exists('xtream_create_line')) {
         }
 
         if ($baseOnline) {
-            // Streaming server is Online! Ensure line is provisioned in SkyPro's device & account registry
-            try {
-                require_once __DIR__ . '/credential_crypto.php';
-                if (function_exists('build_account_key')) {
-                    $accountKey = build_account_key($conn, $username, $password);
-                    $encPass = credential_encrypt_password_for_storage($conn, $password);
-                    $stmtDev = $conn->prepare("INSERT INTO activated_devices (device_id, activation_date, expiry_date, status, account_key, manual_login_username, manual_login_password, notes)
-                        VALUES (?, NOW(), ?, 'active', ?, ?, ?, ?)
-                        ON DUPLICATE KEY UPDATE account_key = VALUES(account_key), expiry_date = VALUES(expiry_date), manual_login_password = VALUES(manual_login_password)");
-                    $devId = 'line_' . substr(md5($username), 0, 16);
-                    $stmtDev->execute([$devId, $formattedDate, $accountKey, $username, $encPass, $notes ?: 'IPTV Customer Line']);
-                }
-            } catch (Throwable $e) {}
-
             return [
                 'success' => true,
                 'synced' => true,

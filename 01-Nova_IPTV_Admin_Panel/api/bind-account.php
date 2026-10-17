@@ -71,11 +71,12 @@ try {
 
     $sameAccount = ($currentKey !== '' && ($currentKey === $accountKey || $currentKey === $legacyAccountKey));
 
-    // عدّ جميع الأجهزة المرتبطة بنفس الحساب (صيغة جديدة + قديمة) باستثناء هذا الجهاز
+    // عدّ جميع الأجهزة المرتبطة بنفس الحساب (صيغة جديدة + قديمة) باستثناء هذا الجهاز والخطوط الافتراضية
     $countStmt = $conn->prepare(
         "SELECT COUNT(*) FROM activated_devices
          WHERE (account_key = ? OR account_key = ?)
-           AND device_id <> ?"
+           AND device_id <> ?
+           AND (device_id NOT LIKE 'line_%')"
     );
     $countStmt->execute([$accountKey, $legacyAccountKey, $deviceId]);
     $activeForAccount = (int)$countStmt->fetchColumn();
@@ -126,6 +127,16 @@ try {
            account_display_name = COALESCE(VALUES(account_display_name), account_display_name)"
     );
     $stmt->execute([$deviceId, $expiryStr, $accountKey, $displayName !== '' ? $displayName : null]);
+
+    // تنظيف أي صف خط افتراضي (line_%) لنفس الحساب حتى لا يبقى كجهاز وهمي
+    try {
+        $delLineStmt = $conn->prepare(
+            "DELETE FROM activated_devices
+             WHERE device_id LIKE 'line_%'
+               AND (account_key = ? OR account_key = ? OR manual_login_username = ?)"
+        );
+        $delLineStmt->execute([$accountKey, $legacyAccountKey, $username]);
+    } catch (Throwable $e) {}
 
     persistActivatedDeviceBindingKeys($conn, $deviceId, $mac, $hardwareFingerprint);
 

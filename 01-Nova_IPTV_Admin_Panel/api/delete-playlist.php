@@ -52,10 +52,10 @@ try {
         $stmt->execute([$deviceId]);
         logActivity($conn, 'unlink_device', $deviceId, 'Remote playlist unlink (activation kept)');
     } else {
-        $stmt = $conn->prepare("UPDATE activated_devices SET custom_domain = NULL WHERE device_id = ?");
+        $stmt = $conn->prepare("UPDATE activated_devices SET custom_domain = NULL, account_key = NULL, account_display_name = NULL, manual_login_username = NULL, manual_login_password = NULL WHERE device_id = ?");
         $stmt->execute([$deviceId]);
         if ($stmt->rowCount() > 0) {
-            logActivity($conn, 'delete_playlist', $deviceId, 'Playlist URL cleared on app logout');
+            logActivity($conn, 'delete_playlist', $deviceId, 'Playlist and bound account cleared on app logout');
         }
     }
     echo json_encode(['success' => true, 'message' => 'Playlist cleared'], JSON_UNESCAPED_UNICODE);
