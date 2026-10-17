@@ -1997,7 +1997,13 @@ function app_panel_public_payload(array $settings): array
         'opensubtitles_api_key' => trim((string)($settings['opensubtitles_api_key'] ?? '')),
         'opensubtitles_username' => trim((string)($settings['opensubtitles_username'] ?? '')),
         'opensubtitles_password' => trim((string)($settings['opensubtitles_password'] ?? '')),
-        'default_server_url' => trim((string)($settings['default_server_url'] ?? '')),
+        'default_server_url' => (function() use ($settings) {
+            $u = trim((string)($settings['default_server_url'] ?? ''));
+            if ($u !== '' && preg_match('~^http://~i', $u) && preg_match('~:(25463|25500|443)/?$~', $u)) {
+                $u = preg_replace('~^http://~i', 'https://', $u);
+            }
+            return $u;
+        })(),
         'login_servers' => parse_login_servers_json($settings['login_servers'] ?? null),
         'piracy_detection_enabled' => !empty($settings['piracy_detection_enabled']),
         'piracy_packages' => (string)($settings['piracy_packages'] ?? ''),

@@ -151,8 +151,14 @@ class SavedAccountsRepository {
   static String normalizeServerUrl(String raw) {
     var s = raw.trim();
     if (s.isEmpty) return s;
+    final bool isSslPort = s.contains(':25463') ||
+        s.contains(':25500') ||
+        s.contains(':443') ||
+        s.contains('skypro-app.com');
     if (!s.startsWith('http://') && !s.startsWith('https://')) {
-      s = 'http://$s';
+      s = isSslPort ? 'https://$s' : 'http://$s';
+    } else if (s.startsWith('http://') && isSslPort) {
+      s = s.replaceFirst('http://', 'https://');
     }
     while (s.endsWith('/')) {
       s = s.substring(0, s.length - 1);

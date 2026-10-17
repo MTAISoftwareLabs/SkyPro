@@ -25,7 +25,7 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
       TextEditingController();
   bool _codeVerifyLoading = false;
   bool _showTvCodeKeypad = false;
-  String? _pendingHostDomainFromCode = kHardcodedStreamingServerUrl;
+  String? _pendingHostDomainFromCode = normalizedStreamingServerUrl();
   Timer? _activationPoll;
   bool _autoLoginTried = false;
 
@@ -1059,10 +1059,15 @@ class _LoginEntryScreenState extends State<LoginEntryScreen>
     if (showActivationLoginDeniedToast(context, _activationStatus)) {
       return;
     }
-    final domain = (_pendingHostDomainFromCode != null &&
+    var rawDomain = (_pendingHostDomainFromCode != null &&
             _pendingHostDomainFromCode!.trim().isNotEmpty)
         ? _pendingHostDomainFromCode!.trim()
-        : kHardcodedStreamingServerUrl;
+        : normalizedStreamingServerUrl();
+    if (rawDomain.startsWith('http://') &&
+        (rawDomain.contains(':25463') || rawDomain.contains(':25500') || rawDomain.contains(':443'))) {
+      rawDomain = rawDomain.replaceFirst('http://', 'https://');
+    }
+    final domain = rawDomain;
     final username = _manualUsernameController.text.trim();
     final password = _manualPasswordController.text.trim();
     if (username.isEmpty || password.isEmpty) {

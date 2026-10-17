@@ -1036,8 +1036,14 @@ String? serverUrlForManualFields(String? raw) {
   }
   if (isM3uStylePlaylistUrl(s)) return null;
   var clean = s.replaceAll(RegExp(r'/+$'), '');
+  final bool isSslPort = clean.contains(':25463') ||
+      clean.contains(':25500') ||
+      clean.contains(':443') ||
+      clean.contains('skypro-app.com');
   if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
-    clean = 'http://$clean';
+    clean = isSslPort ? 'https://$clean' : 'http://$clean';
+  } else if (clean.startsWith('http://') && isSslPort) {
+    clean = clean.replaceFirst('http://', 'https://');
   }
   // أعد بناء الرابط مع المنفذ الظاهر في النص إن وُجد
   final uri = Uri.tryParse(clean);

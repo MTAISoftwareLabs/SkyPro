@@ -34,8 +34,16 @@ class AuthApi {
   static List<String> _loginBases(String link) {
     var clean = link.trim().replaceAll(RegExp(r'/+$'), '');
     if (clean.isEmpty) return const [];
+
+    final bool isSslPort = clean.contains(':25463') ||
+        clean.contains(':25500') ||
+        clean.contains(':443') ||
+        clean.contains('skypro-app.com');
+
     if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
-      clean = 'http://$clean';
+      clean = isSslPort ? 'https://$clean' : 'http://$clean';
+    } else if (clean.startsWith('http://') && isSslPort) {
+      clean = clean.replaceFirst('http://', 'https://');
     }
 
     final out = <String>[];
@@ -53,11 +61,12 @@ class AuthApi {
     final host = uri.host;
     final scheme = uri.scheme.toLowerCase();
     final hasExplicitPort = uri.hasPort;
+    final port = uri.hasPort ? uri.port : null;
 
-    // نفس المضيف بالبروتوكول الآخر
+    // نفس المضيف بالبروتوكول الآخر (مع تجنب إرسال http صريح لمنافذ SSL حصراً)
     if (scheme == 'http') {
       add('https://$host${hasExplicitPort ? ':${uri.port}' : ''}');
-    } else if (scheme == 'https') {
+    } else if (scheme == 'https' && port != 25463 && port != 25500 && port != 443) {
       add('http://$host${hasExplicitPort ? ':${uri.port}' : ''}');
     }
 
