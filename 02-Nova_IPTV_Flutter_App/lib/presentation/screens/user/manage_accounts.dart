@@ -1131,7 +1131,8 @@ class _AccountAvatarCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
