@@ -7,10 +7,18 @@ if (!function_exists('admin_csrf_token')) {
     function admin_csrf_token(): string
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            return '';
+            @session_start();
         }
         if (empty($_SESSION['admin_csrf_token']) || !is_string($_SESSION['admin_csrf_token'])) {
             $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+        }
+        if (!isset($_SESSION['admin_csrf_tokens']) || !is_array($_SESSION['admin_csrf_tokens'])) {
+            $_SESSION['admin_csrf_tokens'] = [$_SESSION['admin_csrf_token']];
+        } elseif (!in_array($_SESSION['admin_csrf_token'], $_SESSION['admin_csrf_tokens'], true)) {
+            $_SESSION['admin_csrf_tokens'][] = $_SESSION['admin_csrf_token'];
+            if (count($_SESSION['admin_csrf_tokens']) > 10) {
+                array_shift($_SESSION['admin_csrf_tokens']);
+            }
         }
         return (string) $_SESSION['admin_csrf_token'];
     }
@@ -44,17 +52,33 @@ if (!function_exists('admin_csrf_token')) {
     function admin_csrf_validate(?string $token = null): bool
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            return false;
+            @session_start();
         }
-        $expected = admin_csrf_token();
-        if ($expected === '') {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
             return false;
         }
         $got = $token !== null ? trim($token) : admin_csrf_request_token();
         if ($got === '' || strlen($got) < 32) {
             return false;
         }
-        return hash_equals($expected, $got);
+        $expected = admin_csrf_token();
+        if ($expected !== '' && hash_equals($expected, $got)) {
+            return true;
+        }
+        // Check pool of recent valid tokens (grace window for multiple tabs / bfcache)
+        if (!empty($_SESSION['admin_csrf_tokens']) && is_array($_SESSION['admin_csrf_tokens'])) {
+            foreach ($_SESSION['admin_csrf_tokens'] as $validToken) {
+                if (is_string($validToken) && strlen($validToken) >= 32 && hash_equals($validToken, $got)) {
+                    return true;
+                }
+            }
+        }
+        if (!empty($_SESSION['admin_csrf_token_prev']) && is_string($_SESSION['admin_csrf_token_prev'])) {
+            if (hash_equals($_SESSION['admin_csrf_token_prev'], $got)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

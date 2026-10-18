@@ -20,12 +20,13 @@ $search = trim((string)($_GET['q'] ?? ''));
 
 // Handle Actions (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    admin_require_csrf();
-    if ($isGuest) {
+    if (!admin_csrf_validate()) {
+        $error = function_exists('t') ? t('msg.csrf_invalid') : 'Invalid security token. Please refresh and try again.';
+    } elseif ($isGuest) {
         header('Location: access_denied.php?perm=devices_edit');
         exit;
-    }
-    $action = trim((string)($_POST['action'] ?? ''));
+    } else {
+        $action = trim((string)($_POST['action'] ?? ''));
 
     if ($action === 'add') {
         $username = trim((string)($_POST['username'] ?? ''));
@@ -140,6 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = $lang === 'ar' ? 'فشل الحذف أو المشترك خارج نطاق حسابك.' : 'Failed to delete customer or customer outside your scope.';
         }
+    }
     }
 }
 

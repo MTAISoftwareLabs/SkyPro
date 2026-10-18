@@ -89,6 +89,7 @@ window.ADMIN_CSRF_TOKEN = <?php echo json_encode(admin_csrf_token(), JSON_UNESCA
   } else {
     injectCsrf(document);
   }
+  window.addEventListener('pageshow', function () { injectCsrf(document); });
   window.adminCsrfHeaders = function (extra) {
     var h = Object.assign({}, extra || {});
     if (window.ADMIN_CSRF_TOKEN) h['X-CSRF-Token'] = window.ADMIN_CSRF_TOKEN;
