@@ -338,6 +338,45 @@ if (!function_exists('xtream_create_line')) {
         $adminPass = $config['password'];
         $apiKey = $config['api_key'];
 
+        // Direct local database sync if Xtream UI table is accessible on the same MySQL instance
+        try {
+            $directStmt = $conn->prepare("
+                INSERT INTO xtream_iptvpro.users (
+                    member_id, username, password, exp_date, admin_enabled, enabled, 
+                    admin_notes, reseller_notes, bouquet, max_connections, is_restreamer, 
+                    allowed_ips, allowed_ua, is_trial, created_at, created_by, pair_id, 
+                    is_mag, is_e2, force_server_id, is_isplock, as_number, isp_desc, 
+                    forced_country, is_stalker, bypass_ua, play_token
+                ) VALUES (
+                    1, :u, :p, :exp, 1, 1, 
+                    :notes, '', '[\"1\"]', :max_conn, 0, 
+                    '[]', '[]', 0, UNIX_TIMESTAMP(), 1, NULL, 
+                    0, 0, 0, 0, '', '', 
+                    '', 0, 0, ''
+                ) ON DUPLICATE KEY UPDATE 
+                    password = VALUES(password),
+                    exp_date = VALUES(exp_date),
+                    admin_enabled = 1,
+                    enabled = 1,
+                    max_connections = VALUES(max_connections)
+            ");
+            $directStmt->execute([
+                ':u' => $username,
+                ':p' => $password,
+                ':exp' => $expTimestamp,
+                ':notes' => $notes ?: 'Customer synced from SkyPro',
+                ':max_conn' => $maxConnections,
+            ]);
+            return [
+                'synced' => true,
+                'message' => 'Line synchronized directly into Xtream UI streaming engine',
+                'method' => 'Direct DB Sync',
+                'http_code' => 200,
+            ];
+        } catch (Throwable $dbSyncErr) {
+            // Fallback to HTTP API attempts if cross-DB permissions not granted
+        }
+
         $candidateBases = xtream_get_candidate_bases($serverUrl);
         $attempts = [];
 
