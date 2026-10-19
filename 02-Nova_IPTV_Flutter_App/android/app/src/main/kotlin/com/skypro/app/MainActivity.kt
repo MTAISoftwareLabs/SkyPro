@@ -1,5 +1,8 @@
 package com.skypro.app
 
+import android.app.ActivityManager
+import android.content.ComponentCallbacks2
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -23,6 +26,7 @@ import kotlin.system.exitProcess
 
 class MainActivity : FlutterActivity() {
     private val channelName = "main_activity_channel"
+    private var mainMethodChannel: MethodChannel? = null
 
     private val widevineUuid = UUID(-0x121074568629b532L, -0x5c37d8232ae2de13L)
 
@@ -33,27 +37,81 @@ class MainActivity : FlutterActivity() {
     private var blockScreenshots: Boolean = true
 
     private fun isTelevision(): Boolean {
-        val uiMode = resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
-        if (uiMode == Configuration.UI_MODE_TYPE_TELEVISION) return true
-        val pm = packageManager
-        return pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
-            pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION)
+        return try {
+            val uiMode = resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
+            if (uiMode == Configuration.UI_MODE_TYPE_TELEVISION) return true
+            val pm = packageManager
+            if (pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+                pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION)) {
+                return true
+            }
+            // TV boxes and media sticks lack touchscreen hardware
+            if (!pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
+                return true
+            }
+            // Amazon Fire TV sticks & devices
+            val model = Build.MODEL.lowercase()
+            val mfr = Build.MANUFACTURER.lowercase()
+            mfr.contains("amazon") || model.startsWith("aft")
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun getDeviceMemoryInfo(): Map<String, Any> {
+        val out = mutableMapOf<String, Any>()
+        try {
+            val actManager = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+            if (actManager != null) {
+                val memInfo = ActivityManager.MemoryInfo()
+                actManager.getMemoryInfo(memInfo)
+                out["totalMem"] = memInfo.totalMem
+                out["availMem"] = memInfo.availMem
+                out["lowMemory"] = memInfo.lowMemory
+                out["threshold"] = memInfo.threshold
+                out["isLowRamDevice"] = actManager.isLowRamDevice
+            }
+        } catch (_: Exception) {
+        }
+        return out
     }
 
     private fun applyNativeOrientationLock() {
-        // التطبيق أفقياً دائماً (هاتف + تلفاز) من أول إطار.
         flutterWantsLandscape = true
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        // Android TV displays are permanently landscape hardware. Calling requestedOrientation on TV
+        // triggers IllegalStateException on translucent activities or missing sensor crashes.
+        if (isTelevision()) return
+
+        try {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } catch (_: Exception) {
+            try {
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            } catch (_: Exception) {
+            }
+        }
     }
 
     private fun applyScreenshotProtection() {
-        if (blockScreenshots) {
-            window.setFlags(
-                WindowManager.LayoutParams.FLAG_SECURE,
-                WindowManager.LayoutParams.FLAG_SECURE
-            )
-        } else {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // TV displays are HDMI external outputs where FLAG_SECURE causes SurfaceFlinger buffer
+        // allocation failures or display dropping on low-end TV boxes.
+        if (isTelevision()) {
+            try {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            } catch (_: Exception) {
+            }
+            return
+        }
+        try {
+            if (blockScreenshots) {
+                window.setFlags(
+                    WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE
+                )
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        } catch (_: Exception) {
         }
     }
 
@@ -205,8 +263,11 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName).setMethodCallHandler { call, result ->
+        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, channelName)
+        mainMethodChannel = channel
+        channel.setMethodCallHandler { call, result ->
             when (call.method) {
+                "getDeviceMemoryInfo" -> result.success(getDeviceMemoryInfo())
                 "isTelevisionDevice" -> result.success(isTelevision())
                 "lockLandscape" -> {
                     flutterWantsLandscape = true
@@ -327,5 +388,28 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "nova.iptv/app_update_progress",
         ).setStreamHandler(AppUpdateProgressPlugin(this))
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+            try {
+                mainMethodChannel?.invokeMethod("onNativeLowMemory", mapOf("level" to level))
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        try {
+            mainMethodChannel?.invokeMethod("onNativeLowMemory", mapOf("level" to -1))
+        } catch (_: Exception) {
+        }
+    }
+
+    override fun onDestroy() {
+        mainMethodChannel = null
+        super.onDestroy()
     }
 }

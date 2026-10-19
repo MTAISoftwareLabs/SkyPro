@@ -88,8 +88,12 @@ List<String> _collectUrls(List<String> raw, int limit) {
   double logicalHeight,
 ) {
   final dpr = MediaQuery.devicePixelRatioOf(context);
-  final w = (logicalWidth * dpr).round().clamp(1, 2048);
-  final h = (logicalHeight * dpr).round().clamp(1, 2048);
+  final p = AppPerf.instance;
+  // أجهزة التلفاز وFirestick: سقف أبعاد الفك لمنع استنزاف ذاكرة Dalvik/ART
+  final maxW = p.isTelevisionLike ? (p.isLite ? 360 : 480) : 1080;
+  final maxH = p.isTelevisionLike ? (p.isLite ? 540 : 720) : 1080;
+  final w = (logicalWidth * dpr).round().clamp(1, maxW);
+  final h = (logicalHeight * dpr).round().clamp(1, maxH);
   return (w, h);
 }
 

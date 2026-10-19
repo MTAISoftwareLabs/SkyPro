@@ -354,6 +354,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   Widget build(BuildContext context) {
     HomePerfLogger.logBuildStart('welcome_screen');
+    final isWideOrTv = isTv(context) || MediaQuery.sizeOf(context).width >= 600;
     final homeBody = ValueListenableBuilder<int>(
       valueListenable: homeThemeRevision,
       builder: (context, _, _) {
@@ -362,14 +363,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
           child: widget._buildContent(
             context,
             firstMovieFocusNode: _firstMovieFocusNode,
-            hideTvTopBar: isTv(context),
+            hideTvTopBar: isWideOrTv,
           ),
         );
       },
     );
 
     final Widget child;
-    final isWideOrTv = isTv(context) || MediaQuery.sizeOf(context).width >= 600;
     if (!isWideOrTv) {
       child = homeBody;
     } else {

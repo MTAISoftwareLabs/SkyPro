@@ -315,7 +315,6 @@ void _showAppToast(
       behavior: SnackBarBehavior.floating,
       backgroundColor: Colors.transparent,
       width: toastWidth,
-      margin: _toastMargin(),
       padding: EdgeInsets.zero,
       duration: const Duration(seconds: 3),
       dismissDirection: DismissDirection.horizontal,

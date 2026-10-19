@@ -96,7 +96,6 @@ flutter:
     - assets/images/
     - assets/images/avatars/
     - assets/images/smart_tv_nav/
-    - assets/images/no_poster.png
     - assets/animations/
     - assets/themes/netflix_red/bg_main.png
     - assets/themes/ramadan_gold/bg_main.png

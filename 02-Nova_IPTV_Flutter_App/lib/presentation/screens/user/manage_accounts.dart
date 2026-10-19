@@ -1218,7 +1218,7 @@ class _AccountActionsMenuPanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _AccountActionTile(
-              icon: LucideIcons.trash_2,
+              icon: LucideIcons.trash,
               label: 'manage_accounts_delete'.tr,
               accent: const Color(0xFFFF6B6B),
               onTap: onDelete,

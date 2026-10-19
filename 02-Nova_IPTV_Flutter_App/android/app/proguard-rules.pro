@@ -1,11 +1,11 @@
 # ProGuard / R8 — release shrink without stripping needed player & ads code.
 # If a device crashes only in release, add -keep for that package and rebuild.
 
-# --- App entry / license gate ---
--keep class com.skypro.app.MainActivity { *; }
--keep class com.skypro.app.LicenseNativeGate { *; }
+# --- App entry / license gate / application / plugins ---
+-keep class com.skypro.app.** { *; }
+-keepclassmembers class com.skypro.app.** { *; }
 
-# --- Flutter ---
+# --- Flutter & Method/Event Channels ---
 -keep class io.flutter.app.** { *; }
 -keep class io.flutter.plugin.** { *; }
 -keep class io.flutter.util.** { *; }
@@ -13,7 +13,15 @@
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
 -keep class io.flutter.embedding.** { *; }
+-keep class * implements io.flutter.plugin.common.MethodChannel$MethodCallHandler { *; }
+-keep class * implements io.flutter.plugin.common.EventChannel$StreamHandler { *; }
 -dontwarn io.flutter.embedding.**
+
+# --- OneSignal & Play Core ---
+-keep class com.onesignal.** { *; }
+-dontwarn com.onesignal.**
+-keep class com.google.android.play.core.** { *; }
+-dontwarn com.google.android.play.core.**
 
 # --- JSON / reflection (used by many SDKs) ---
 -keepattributes Signature

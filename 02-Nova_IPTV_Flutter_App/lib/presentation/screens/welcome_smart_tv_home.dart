@@ -119,12 +119,12 @@ class _SmartTvHomeTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (sideRail) return _buildTvSideRail(context);
+    if (utilitiesOnly) return _buildTvUtilitiesBar(context);
     final phone = !isTv(context);
     if (phone) {
       return _buildPhoneBar(context);
     }
-    if (sideRail) return _buildTvSideRail(context);
-    if (utilitiesOnly) return _buildTvUtilitiesBar(context);
     return _buildTvBar(context);
   }
 

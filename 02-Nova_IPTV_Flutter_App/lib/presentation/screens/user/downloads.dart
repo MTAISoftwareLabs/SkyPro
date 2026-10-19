@@ -70,14 +70,14 @@ class _DownloadsScreenState extends State<DownloadsScreen>
   Future<void> _confirmDelete(DownloadedMovie item) async {
     final ok = await AppActionConfirmDialog.show(
       context,
-      icon: LucideIcons.trash_2,
+      icon: LucideIcons.trash,
       accent: const Color(0xFFD32F2F),
       title: 'delete'.tr,
       message: 'sure_delete'.tr,
       highlight: item.name,
       confirmLabel: 'delete'.tr,
       cancelLabel: 'no'.tr,
-      confirmIcon: LucideIcons.trash_2,
+      confirmIcon: LucideIcons.trash,
       cancelIcon: LucideIcons.x,
     );
     if (ok != true || !mounted) return;

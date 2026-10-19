@@ -31,16 +31,38 @@ import 'presentation/screens/screens.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await GetStorage.init();
-  await GetStorage.init("favorites");
-  await AppPerf.init();
-  migratePreferredPlayerToVlcPrimary();
+  try {
+    await GetStorage.init();
+    await GetStorage.init("favorites");
+  } catch (e) {
+    debugPrint('GetStorage init error: $e');
+  }
+  try {
+    await AppPerf.init();
+  } catch (e) {
+    debugPrint('AppPerf init error: $e');
+  }
+  try {
+    migratePreferredPlayerToVlcPrimary();
+  } catch (e) {
+    debugPrint('migratePreferredPlayerToVlcPrimary error: $e');
+  }
   HomePerfLogger.mark('main_storage_ready');
-  // تلفاز/شاشة كبيرة → أفقي من أول إطار؛ هاتف معروف → عمودي؛ أول تشغيل بدون تخزين → حسب حجم الشاشة.
-  await applyInitialAppOrientation();
-  await applyScreenshotProtection();
-  // Ads init after panel sync (App ID + units). Warm-start uses cached App ID.
-  unawaited(AdsService.init());
+  try {
+    await applyInitialAppOrientation();
+  } catch (e) {
+    debugPrint('applyInitialAppOrientation error: $e');
+  }
+  try {
+    await applyScreenshotProtection();
+  } catch (e) {
+    debugPrint('applyScreenshotProtection error: $e');
+  }
+  try {
+    unawaited(AdsService.init());
+  } catch (e) {
+    debugPrint('AdsService init error: $e');
+  }
 
   runApp(
     MyApp(
@@ -107,7 +129,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void didHaveMemoryPressure() {
-    AppPerf.onMemoryPressure();
+    AppPerf.onMemoryPressure(isUrgent: true);
   }
 
   Future<void> _handleAppResumed() async {

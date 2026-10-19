@@ -79,7 +79,7 @@ class _NotificationsInboxScreenState extends State<NotificationsInboxScreen>
       message: 'notifications_clear_all_confirm'.tr,
       confirmLabel: 'delete'.tr,
       cancelLabel: 'no'.tr,
-      confirmIcon: LucideIcons.trash_2,
+      confirmIcon: LucideIcons.trash,
     );
     if (ok == true) {
       await NotificationInboxService.instance.clearAll();
@@ -232,7 +232,7 @@ class _NotificationsAppBar extends StatelessWidget {
                       foregroundColor: Colors.white70,
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    icon: Icon(LucideIcons.trash_2, size: tv ? 18 : 16),
+                    icon: Icon(LucideIcons.trash, size: tv ? 18 : 16),
                     label: Text(
                       'notifications_clear_all'.tr,
                       style: TextStyle(

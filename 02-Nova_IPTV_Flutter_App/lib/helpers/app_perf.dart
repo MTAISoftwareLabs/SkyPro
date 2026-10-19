@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 import 'package:get_storage/get_storage.dart';
 
 /// مستوى أداء الجهاز — الميزات تبقى كاملة؛ يتغيّر فقط تكلفة الصور/الذاكرة/الشبكة.
@@ -84,8 +85,8 @@ class AppPerf {
   static bool _initialized = false;
 
   static Timer? _imageCacheRestoreTimer;
-  static const int _memoryPressureMinCacheBytes = 10 << 20; // 10 MB
-  static const Duration _memoryPressureRestoreDelay = Duration(seconds: 12);
+  static const int _memoryPressureMinCacheBytes = 8 << 20; // 8 MB during severe pressure
+  static const Duration _memoryPressureRestoreDelay = Duration(seconds: 10);
 
   static AppPerf _lite({
     bool isTelevisionLike = false,
@@ -93,22 +94,21 @@ class AppPerf {
   }) =>
       AppPerf._(
         level: AppPerfLevel.lite,
-        // ~poster card size — نفس أبعاد الرئيسية حتى يتشارك الكاش.
-        thumbW: 160,
-        thumbH: 240,
-        homePosterW: 160,
-        homePosterH: 240,
-        thumbSmallW: 120,
-        thumbSmallH: 168,
-        backdropW: 320,
-        backdropH: 448,
-        imageConcurrentFetches: 4,
-        // أكبر شوية باش All ↔ فئة ما تطيّحش صور ظاهرة من كاش الذاكرة.
-        imageCacheMaxEntries: 300,
-        imageCacheMaxBytes: 100 << 20, // 100 MB
-        diskCacheObjects: 1000,
+        thumbW: 150,
+        thumbH: 225,
+        homePosterW: 150,
+        homePosterH: 225,
+        thumbSmallW: 110,
+        thumbSmallH: 154,
+        backdropW: 300,
+        backdropH: 420,
+        imageConcurrentFetches: 3,
+        // سقف آمن للأجهزة 1GB RAM لتفادي Dalvik/ART OOM وموت العملية
+        imageCacheMaxEntries: 100,
+        imageCacheMaxBytes: 32 << 20, // 32 MB
+        diskCacheObjects: 600,
         catalogFetchConcurrency: 2,
-        catalogCacheExtent: 140,
+        catalogCacheExtent: 100,
         useSystemFonts: true,
         posterFadeMs: 0,
         useLowFilterQuality: true,
@@ -125,25 +125,26 @@ class AppPerf {
   }) =>
       AppPerf._(
         level: AppPerfLevel.mid,
-        thumbW: 220,
-        thumbH: 330,
-        homePosterW: 220,
-        homePosterH: 330,
-        thumbSmallW: 160,
-        thumbSmallH: 224,
-        backdropW: 400,
-        backdropH: 560,
-        imageConcurrentFetches: 7,
-        imageCacheMaxEntries: 550,
-        imageCacheMaxBytes: 200 << 20, // 200 MB
-        diskCacheObjects: 1600,
-        catalogFetchConcurrency: 4,
-        catalogCacheExtent: 240,
+        thumbW: 200,
+        thumbH: 300,
+        homePosterW: 200,
+        homePosterH: 300,
+        thumbSmallW: 140,
+        thumbSmallH: 196,
+        backdropW: 360,
+        backdropH: 504,
+        imageConcurrentFetches: 5,
+        // أجهزة 2GB RAM: كاش متوازن وسريع بدون ضغط الذاكرة
+        imageCacheMaxEntries: 180,
+        imageCacheMaxBytes: 64 << 20, // 64 MB
+        diskCacheObjects: 1200,
+        catalogFetchConcurrency: 3,
+        catalogCacheExtent: 180,
         useSystemFonts: false,
-        posterFadeMs: 120,
+        posterFadeMs: 80,
         useLowFilterQuality: true,
         reduceFocusMotion: reduceFocusMotion,
-        focusAnimMs: reduceFocusMotion ? 0 : 90,
+        focusAnimMs: reduceFocusMotion ? 0 : 70,
         isTelevisionLike: isTelevisionLike,
         isPhoneLike: isPhoneLike,
       );
@@ -154,26 +155,25 @@ class AppPerf {
   }) =>
       AppPerf._(
         level: AppPerfLevel.full,
-        // سقف معقول للملصق (~300×450) بدل فك تشفير 1080p كاملة في الذاكرة.
-        thumbW: 300,
-        thumbH: 450,
-        homePosterW: 300,
-        homePosterH: 450,
-        thumbSmallW: 200,
-        thumbSmallH: 280,
-        backdropW: 480,
-        backdropH: 672,
-        imageConcurrentFetches: 12,
-        imageCacheMaxEntries: 750,
-        imageCacheMaxBytes: 280 << 20, // 280 MB
-        diskCacheObjects: 2800,
-        catalogFetchConcurrency: 6,
-        catalogCacheExtent: 380,
+        thumbW: 260,
+        thumbH: 390,
+        homePosterW: 260,
+        homePosterH: 390,
+        thumbSmallW: 180,
+        thumbSmallH: 252,
+        backdropW: 440,
+        backdropH: 616,
+        imageConcurrentFetches: 8,
+        imageCacheMaxEntries: 350,
+        imageCacheMaxBytes: 128 << 20, // 128 MB
+        diskCacheObjects: 2000,
+        catalogFetchConcurrency: 5,
+        catalogCacheExtent: 260,
         useSystemFonts: false,
-        posterFadeMs: 180,
+        posterFadeMs: 140,
         useLowFilterQuality: false,
         reduceFocusMotion: false,
-        focusAnimMs: 140,
+        focusAnimMs: 120,
         isTelevisionLike: isTelevisionLike,
         isPhoneLike: isPhoneLike,
       );
@@ -207,7 +207,46 @@ class AppPerf {
             features.contains('android.software.leanback');
         isPhone = !isTv;
 
-        if (a.isLowRamDevice) score += 5;
+        final model =
+            '${a.model} ${a.device} ${a.hardware} ${a.board} ${a.product} ${a.brand} ${a.manufacturer}'
+                .toLowerCase();
+
+        // Firestick / Amazon TV detection
+        if (model.contains('amazon') || model.contains('aft')) {
+          isTv = true;
+          isPhone = false;
+          score += 2;
+        }
+
+        // قياس الذاكرة الحقيقية من النظام مباشرة لكشف أجهزة 1GB / 2GB بدقة
+        int? totalMemMb;
+        bool? isLowRamNative;
+        try {
+          const channel = MethodChannel('main_activity_channel');
+          final mem = await channel.invokeMapMethod<String, dynamic>('getDeviceMemoryInfo');
+          if (mem != null) {
+            final totalBytes = (mem['totalMem'] as num?)?.toInt() ?? 0;
+            if (totalBytes > 0) {
+              totalMemMb = totalBytes ~/ (1024 * 1024);
+            }
+            isLowRamNative = mem['isLowRamDevice'] as bool?;
+          }
+        } catch (_) {}
+
+        if (isLowRamNative == true || a.isLowRamDevice) {
+          score += 5;
+        }
+
+        if (totalMemMb != null) {
+          if (totalMemMb <= 1350) {
+            // أجهزة 1GB RAM أو أقل (Firestick Lite/Basic، TV Boxes رخيصة)
+            score += 6;
+          } else if (totalMemMb <= 2350) {
+            // أجهزة 2GB RAM (Firestick 4K، تي في بوكس متوسط)
+            score += 3;
+          }
+        }
+
         final sdk = a.version.sdkInt;
         if (sdk < 26) {
           score += 4;
@@ -218,10 +257,6 @@ class AppPerf {
         } else if (sdk < 33) {
           score += 1;
         }
-
-        final model =
-            '${a.model} ${a.device} ${a.hardware} ${a.board} ${a.product} ${a.brand}'
-                .toLowerCase();
 
         // TV boxes + هواتف دخول (MediaTek / Unisoc / Adreno قديم / Amlogic).
         if (RegExp(
@@ -273,7 +308,7 @@ class AppPerf {
     if (kIsWeb) {
       levelFromScore = AppPerfLevel.full;
     } else if (score >= 4) {
-      // عتبة أخف من 5 باش الهواتف الضعيفة تدخل lite أسهل.
+      // عتبة أخف من 5 باش الأجهزة الضعيفة تدخل lite أسهل.
       levelFromScore = AppPerfLevel.lite;
     } else if (score >= 2) {
       levelFromScore = AppPerfLevel.mid;
@@ -310,22 +345,25 @@ class AppPerf {
   /// التلفاز: نفس الواجهة، تكلفة GPU/RAM أقل (فك صور أصغر، بلا blur/scale).
   static AppPerf _capForTelevision(AppPerf p) {
     int minInt(int a, int b) => a < b ? a : b;
+    final maxBytesCap = p.isLite ? (32 << 20) : (64 << 20);
+    final maxEntriesCap = p.isLite ? 100 : 180;
+
     return AppPerf._(
       level: p.level,
-      thumbW: minInt(p.thumbW, 200),
-      thumbH: minInt(p.thumbH, 300),
-      homePosterW: minInt(p.homePosterW, 200),
-      homePosterH: minInt(p.homePosterH, 300),
-      thumbSmallW: minInt(p.thumbSmallW, 140),
-      thumbSmallH: minInt(p.thumbSmallH, 196),
-      backdropW: minInt(p.backdropW, 360),
-      backdropH: minInt(p.backdropH, 504),
-      imageConcurrentFetches: minInt(p.imageConcurrentFetches, 4),
-      imageCacheMaxEntries: minInt(p.imageCacheMaxEntries, 280),
-      imageCacheMaxBytes: minInt(p.imageCacheMaxBytes, 96 << 20),
-      diskCacheObjects: p.diskCacheObjects,
-      catalogFetchConcurrency: minInt(p.catalogFetchConcurrency, 3),
-      catalogCacheExtent: p.catalogCacheExtent < 160 ? p.catalogCacheExtent : 160,
+      thumbW: minInt(p.thumbW, 180),
+      thumbH: minInt(p.thumbH, 270),
+      homePosterW: minInt(p.homePosterW, 180),
+      homePosterH: minInt(p.homePosterH, 270),
+      thumbSmallW: minInt(p.thumbSmallW, 130),
+      thumbSmallH: minInt(p.thumbSmallH, 182),
+      backdropW: minInt(p.backdropW, 340),
+      backdropH: minInt(p.backdropH, 476),
+      imageConcurrentFetches: minInt(p.imageConcurrentFetches, p.isLite ? 3 : 4),
+      imageCacheMaxEntries: minInt(p.imageCacheMaxEntries, maxEntriesCap),
+      imageCacheMaxBytes: minInt(p.imageCacheMaxBytes, maxBytesCap),
+      diskCacheObjects: minInt(p.diskCacheObjects, 1000),
+      catalogFetchConcurrency: minInt(p.catalogFetchConcurrency, 2),
+      catalogCacheExtent: p.catalogCacheExtent < 120 ? p.catalogCacheExtent : 120,
       useSystemFonts: p.useSystemFonts,
       posterFadeMs: 0,
       useLowFilterQuality: true,
@@ -389,13 +427,26 @@ class AppPerf {
     instance = _build(detected);
     _initialized = true;
     applyToFlutterImageCache();
+
+    if (Platform.isAndroid) {
+      try {
+        const MethodChannel('main_activity_channel')
+            .setMethodCallHandler((call) async {
+          if (call.method == 'onNativeLowMemory') {
+            onMemoryPressure(isUrgent: true);
+          }
+        });
+      } catch (_) {}
+    }
+
     if (kDebugMode) {
       debugPrint(
         '[AppPerf] level=${instance.level.name} '
         'phone=${instance.isPhoneLike} tv=${instance.isTelevisionLike} '
         'reduceFocus=${instance.reduceFocusMotion} '
         'imgConcurrency=${instance.imageConcurrentFetches} '
-        'thumb=${instance.thumbW}x${instance.thumbH}',
+        'thumb=${instance.thumbW}x${instance.thumbH} '
+        'cacheLimit=${instance.imageCacheMaxBytes ~/ (1024 * 1024)}MB',
       );
     }
     return instance;
@@ -412,10 +463,14 @@ class AppPerf {
     }
   }
 
-  /// عند ضغط الذاكرة — تقليل سقف الكاش (LRU eviction) بدل مسح شامل.
-  static void onMemoryPressure() {
+  /// عند ضغط الذاكرة — مسح الكاشات الحية فوراً وتقليل السقف مؤقتاً لتجنب القتل بواسطة LMK.
+  static void onMemoryPressure({bool isUrgent = false}) {
     try {
       final cache = PaintingBinding.instance.imageCache;
+      if (isUrgent || instance.isLite) {
+        cache.clear();
+        cache.clearLiveImages();
+      }
       final originalBytes = instance.imageCacheMaxBytes;
       final reduced = (originalBytes ~/ 2).clamp(
         _memoryPressureMinCacheBytes,

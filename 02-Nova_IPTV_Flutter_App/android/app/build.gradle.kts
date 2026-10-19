@@ -36,11 +36,10 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
-        targetSdk = 36
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        // APK واحد أصغر: فقط معماريات الأجهزة الحقيقية (ARM). يستبعد x86/x86_64 محاكيات Intel —
-        // للاختبار هناك استخدم صورة arm64 للمحاكي أو علّق هذا الكتلة مؤقتاً.
+        // Universal Build supporting both 32-bit (armeabi-v7a) and 64-bit (arm64-v8a)
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
         }
@@ -66,8 +65,8 @@ android {
         release {
             // R8 يصغّر كود Java/Kotlin والموارد غير المستخدمة (توفير كبير في الحجم).
             // قواعد الحفظ في proguard-rules.pro تقلّل تعارض المشغّل والإعلانات والويب.
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -84,8 +83,12 @@ android {
     // إن بُني المشروع بدون --target-platform يمرّ أحياناً x86/x86_64؛ نمنعها من داخل الـ APK.
     packaging {
         jniLibs {
+            useLegacyPackaging = true
             excludes += "**/lib/x86/**"
             excludes += "**/lib/x86_64/**"
+        }
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
 }

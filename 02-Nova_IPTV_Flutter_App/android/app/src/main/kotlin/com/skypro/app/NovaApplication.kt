@@ -1,6 +1,6 @@
 package com.skypro.app
 
-import android.app.Application
+import io.flutter.app.FlutterApplication
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
@@ -10,10 +10,14 @@ import android.util.Log
  * Mobile Ads SDK reads the manifest meta-data. Manifest keeps a Google sample
  * ID as bootstrap so the process never crashes on a fresh install.
  */
-class NovaApplication : Application() {
+class NovaApplication : FlutterApplication() {
     override fun onCreate() {
-        applyCachedAdMobAppId(this)
         super.onCreate()
+        try {
+            applyCachedAdMobAppId(this)
+        } catch (e: Exception) {
+            Log.w("NovaAds", "applyCachedAdMobAppId failed: ${e.message}")
+        }
     }
 
     companion object {
