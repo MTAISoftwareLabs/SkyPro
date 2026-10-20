@@ -39,6 +39,7 @@ android {
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
         // Universal Build supporting both 32-bit (armeabi-v7a) and 64-bit (arm64-v8a)
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")
@@ -46,7 +47,13 @@ android {
     }
 
     signingConfigs {
+        getByName("debug") {
+            enableV1Signing = true
+            enableV2Signing = true
+        }
         create("release") {
+            enableV1Signing = true
+            enableV2Signing = true
             val hasReleaseKeystore =
                 keystoreProperties["storeFile"] != null &&
                 keystoreProperties["storePassword"] != null &&
