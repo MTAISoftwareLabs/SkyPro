@@ -355,18 +355,20 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   Widget build(BuildContext context) {
     HomePerfLogger.logBuildStart('welcome_screen');
     final isWideOrTv = isTv(context) || MediaQuery.sizeOf(context).width >= 600;
-    final homeBody = ValueListenableBuilder<int>(
-      valueListenable: homeThemeRevision,
-      builder: (context, _, _) {
-        return KeyedSubtree(
-          key: ValueKey(getActiveHomeThemeKey()),
-          child: widget._buildContent(
-            context,
-            firstMovieFocusNode: _firstMovieFocusNode,
-            hideTvTopBar: isWideOrTv,
-          ),
-        );
-      },
+    final homeBody = RepaintBoundary(
+      child: ValueListenableBuilder<int>(
+        valueListenable: homeThemeRevision,
+        builder: (context, _, _) {
+          return KeyedSubtree(
+            key: ValueKey(getActiveHomeThemeKey()),
+            child: widget._buildContent(
+              context,
+              firstMovieFocusNode: _firstMovieFocusNode,
+              hideTvTopBar: isWideOrTv,
+            ),
+          );
+        },
+      ),
     );
 
     final Widget child;

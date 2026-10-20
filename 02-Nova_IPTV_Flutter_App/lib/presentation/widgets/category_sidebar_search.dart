@@ -268,34 +268,36 @@ class _CategorySidebarSearchFieldState
       );
     }
 
-    final box = AnimatedContainer(
-      duration: kFocusAnimDuration,
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: (focused || phoneFocused)
-              ? kColorFocus
-              : Colors.white.withValues(alpha: 0.10),
-          width: (focused || phoneFocused) ? 2 : 1,
+    final box = RepaintBoundary(
+      child: AnimatedContainer(
+        duration: kFocusAnimDuration,
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: (focused || phoneFocused)
+                ? kColorFocus
+                : Colors.white.withValues(alpha: 0.10),
+            width: 2,
+          ),
+          boxShadow: kTvFocusGlow(
+            focused: focused || phoneFocused,
+            blur: 10,
+            spread: 0.5,
+            alpha: 0.45,
+          ),
         ),
-        boxShadow: kTvFocusGlow(
-          focused: focused || phoneFocused,
-          blur: 10,
-          spread: 0.5,
-          alpha: 0.45,
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: vPad),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            focusColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+          ),
+          child: inner,
         ),
-      ),
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: vPad),
-      child: Theme(
-        data: Theme.of(context).copyWith(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-          focusColor: Colors.transparent,
-          hoverColor: Colors.transparent,
-        ),
-        child: inner,
       ),
     );
 

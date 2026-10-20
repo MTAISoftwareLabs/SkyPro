@@ -134,9 +134,10 @@ class _SmartTvHomeTopBar extends StatelessWidget {
     const iconBox = 32.0;
     final side = (MediaQuery.sizeOf(context).width * 0.03).clamp(10.0, 14.0);
 
-    return Material(
-      color: barBg,
-      child: Padding(
+    return RepaintBoundary(
+      child: Material(
+        color: barBg,
+        child: Padding(
         padding: EdgeInsets.fromLTRB(side, 6, side, 6),
         child: SizedBox(
           height: iconBox,
@@ -251,8 +252,9 @@ class _SmartTvHomeTopBar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildTvBar(BuildContext context) {
     // أحجام متوازنة: كل التبويبات ظاهرة + مساحة للمحتوى (مثل Smart TV).
@@ -315,63 +317,65 @@ class _SmartTvHomeTopBar extends StatelessWidget {
       ),
     );
 
-    return Material(
-      color: kSkyProBlack,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(side, top, side, 10),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                kIconSplash,
-                width: logoSize,
-                height: logoSize,
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (_, _, _) =>
-                    const SizedBox(width: logoSize, height: logoSize),
+    return RepaintBoundary(
+      child: Material(
+        color: kSkyProBlack,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(side, top, side, 10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  kIconSplash,
+                  width: logoSize,
+                  height: logoSize,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, _, _) =>
+                      const SizedBox(width: logoSize, height: logoSize),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: tabs,
+              const SizedBox(width: 12),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: tabs,
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _SmartTvSearchPill(
-                  selected: selected,
-                  onArrowDownToContent: onArrowDownToContent,
-                  onSearchClosed: onSearchClosed,
-                ),
-                const SizedBox(width: 8),
-                const _SmartTvLiveClock(),
-                const SizedBox(width: 8),
-                const _SmartTvWifiIcon(),
-                const SizedBox(width: 6),
-                _SmartTvProfileBtn(onArrowDownToContent: onArrowDownToContent),
-                const SizedBox(width: 6),
-                _SmartTvNotificationsBtn(
-                  onArrowDownToContent: onArrowDownToContent,
-                ),
-                const SizedBox(width: 6),
-                _SmartTvCircleIconBtn(
-                  asset: kSmartTvNavSettings,
-                  tooltip: 'settings'.tr,
-                  onTap: _openSettings,
-                  isLastInRow: true,
-                  focusDebugLabel: _stvTopLabel('settings'),
-                  onArrowDownToContent: onArrowDownToContent,
-                ),
-              ],
-            ),
-          ],
+              const SizedBox(width: 10),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _SmartTvSearchPill(
+                    selected: selected,
+                    onArrowDownToContent: onArrowDownToContent,
+                    onSearchClosed: onSearchClosed,
+                  ),
+                  const SizedBox(width: 8),
+                  const _SmartTvLiveClock(),
+                  const SizedBox(width: 8),
+                  const _SmartTvWifiIcon(),
+                  const SizedBox(width: 6),
+                  _SmartTvProfileBtn(onArrowDownToContent: onArrowDownToContent),
+                  const SizedBox(width: 6),
+                  _SmartTvNotificationsBtn(
+                    onArrowDownToContent: onArrowDownToContent,
+                  ),
+                  const SizedBox(width: 6),
+                  _SmartTvCircleIconBtn(
+                    asset: kSmartTvNavSettings,
+                    tooltip: 'settings'.tr,
+                    onTap: _openSettings,
+                    isLastInRow: true,
+                    focusDebugLabel: _stvTopLabel('settings'),
+                    onArrowDownToContent: onArrowDownToContent,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -407,78 +411,88 @@ class _SmartTvHomeTopBar extends StatelessWidget {
       ),
     ];
 
-    return Material(
-      color: kSkyProBlack,
-      child: Container(
-        width: railWidth,
-        decoration: const BoxDecoration(
-          border: Border(right: BorderSide(color: Color(0x55007BFF), width: 1)),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 16, 10, 12),
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        kSkyProLogo,
-                        width: 48,
-                        height: 48,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const SizedBox(
+    return RepaintBoundary(
+      child: Material(
+        color: kSkyProBlack,
+        child: Container(
+          width: railWidth,
+          decoration: const BoxDecoration(
+            border: Border(right: BorderSide(color: Color(0x55007BFF), width: 1)),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 16, 10, 12),
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          kSkyProLogo,
                           width: 48,
                           height: 48,
-                          child: Icon(
-                            Icons.live_tv,
-                            color: kSkyProBlue,
-                            size: 28,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => const SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Icon(
+                              Icons.live_tv,
+                              color: kSkyProBlue,
+                              size: 28,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'SKYPRO',
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: kSkyProSilver,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, thickness: 1, color: Color(0x33007BFF)),
-              const SizedBox(height: 12),
-              Expanded(
-                child: FocusTraversalGroup(
-                  policy: OrderedTraversalPolicy(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    itemCount: tabs.length,
-                    itemBuilder: (context, index) {
-                      final item = tabs[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _SkyProTvRailItem(
-                          label: item.label,
-                          iconAsset: item.icon,
-                          selected: selected == item.tab,
-                          order: index + 1,
-                          onTap: () => _select(item.tab),
-                          onArrowRight: onArrowRightToContent,
+                      const SizedBox(height: 8),
+                      const Text(
+                        'SKYPRO',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: kSkyProSilver,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const Divider(height: 1, thickness: 1, color: Color(0x33007BFF)),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: FocusTraversalGroup(
+                    policy: OrderedTraversalPolicy(),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      itemCount: tabs.length,
+                      itemBuilder: (context, index) {
+                        final item = tabs[index];
+                        final tabKey = switch (item.tab) {
+                          SmartTvShellTab.home => 'home',
+                          SmartTvShellTab.live => 'live',
+                          SmartTvShellTab.movies => 'movies',
+                          SmartTvShellTab.series => 'series',
+                          SmartTvShellTab.favourites => 'fav',
+                        };
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _SkyProTvRailItem(
+                            label: item.label,
+                            iconAsset: item.icon,
+                            selected: selected == item.tab,
+                            order: index + 1,
+                            focusDebugLabel: _stvTopLabel(tabKey),
+                            onTap: () => _select(item.tab),
+                            onArrowRight: onArrowRightToContent,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -488,38 +502,40 @@ class _SmartTvHomeTopBar extends StatelessWidget {
   Widget _buildTvUtilitiesBar(BuildContext context) {
     final side = smartTvHomeSideInset(context);
     final top = smartTvHomeTopInset(context);
-    return Material(
-      color: kSkyProBlack,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(0, top, side, 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            _SmartTvSearchPill(
-              selected: selected,
-              onArrowDownToContent: onArrowDownToContent,
-              onSearchClosed: onSearchClosed,
-            ),
-            const SizedBox(width: 8),
-            const _SmartTvLiveClock(),
-            const SizedBox(width: 8),
-            const _SmartTvWifiIcon(),
-            const SizedBox(width: 6),
-            _SmartTvProfileBtn(onArrowDownToContent: onArrowDownToContent),
-            const SizedBox(width: 6),
-            _SmartTvNotificationsBtn(
-              onArrowDownToContent: onArrowDownToContent,
-            ),
-            const SizedBox(width: 6),
-            _SmartTvCircleIconBtn(
-              asset: kSmartTvNavSettings,
-              tooltip: 'settings'.tr,
-              onTap: _openSettings,
-              isLastInRow: true,
-              focusDebugLabel: _stvTopLabel('settings'),
-              onArrowDownToContent: onArrowDownToContent,
-            ),
-          ],
+    return RepaintBoundary(
+      child: Material(
+        color: kSkyProBlack,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(0, top, side, 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _SmartTvSearchPill(
+                selected: selected,
+                onArrowDownToContent: onArrowDownToContent,
+                onSearchClosed: onSearchClosed,
+              ),
+              const SizedBox(width: 8),
+              const _SmartTvLiveClock(),
+              const SizedBox(width: 8),
+              const _SmartTvWifiIcon(),
+              const SizedBox(width: 6),
+              _SmartTvProfileBtn(onArrowDownToContent: onArrowDownToContent),
+              const SizedBox(width: 6),
+              _SmartTvNotificationsBtn(
+                onArrowDownToContent: onArrowDownToContent,
+              ),
+              const SizedBox(width: 6),
+              _SmartTvCircleIconBtn(
+                asset: kSmartTvNavSettings,
+                tooltip: 'settings'.tr,
+                onTap: _openSettings,
+                isLastInRow: true,
+                focusDebugLabel: _stvTopLabel('settings'),
+                onArrowDownToContent: onArrowDownToContent,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -534,6 +550,7 @@ class _SkyProTvRailItem extends StatefulWidget {
     required this.order,
     required this.onTap,
     this.onArrowRight,
+    this.focusDebugLabel,
   });
 
   final String label;
@@ -542,6 +559,7 @@ class _SkyProTvRailItem extends StatefulWidget {
   final int order;
   final VoidCallback onTap;
   final VoidCallback? onArrowRight;
+  final String? focusDebugLabel;
 
   @override
   State<_SkyProTvRailItem> createState() => _SkyProTvRailItemState();
@@ -549,79 +567,123 @@ class _SkyProTvRailItem extends StatefulWidget {
 
 class _SkyProTvRailItemState extends State<_SkyProTvRailItem> {
   bool _focused = false;
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: widget.focusDebugLabel,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _stvBindFocusLabel(_focusNode, widget.focusDebugLabel);
+  }
+
+  @override
+  void dispose() {
+    _stvBindFocusLabel(_focusNode, null);
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FocusTraversalOrder(
-      order: NumericFocusOrder(widget.order.toDouble()),
-      child: Focus(
-        autofocus: widget.selected,
-        onFocusChange: (focused) {
-          if (_focused != focused) setState(() => _focused = focused);
-        },
-        onKeyEvent: (_, event) {
-          if (event is KeyDownEvent &&
-              event.logicalKey == LogicalKeyboardKey.arrowRight) {
-            widget.onArrowRight?.call();
-            return KeyEventResult.handled;
-          }
-          return KeyEventResult.ignored;
-        },
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            canRequestFocus: false,
-            onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(14),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: double.infinity,
-              height: 66,
-              decoration: BoxDecoration(
-                color: widget.selected
-                    ? kSkyProBlue.withValues(alpha: 0.2)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _focused
-                      ? kSkyProSilver
-                      : widget.selected
-                      ? kSkyProBlue
+    return RepaintBoundary(
+      child: FocusTraversalOrder(
+        order: NumericFocusOrder(widget.order.toDouble()),
+        child: Focus(
+          focusNode: _focusNode,
+          autofocus: widget.selected,
+          onFocusChange: (focused) {
+            if (_focused != focused) setState(() => _focused = focused);
+          },
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+              return KeyEventResult.ignored;
+            }
+            if (event is KeyRepeatEvent) {
+              final last = _homeFocusNavAt;
+              if (last != null &&
+                  DateTime.now().difference(last) < _kHomeFocusNavMinInterval) {
+                return KeyEventResult.handled;
+              }
+            }
+            final key = event.logicalKey;
+            if (key == LogicalKeyboardKey.arrowUp && widget.order == 1) {
+              final searchNode = _stvFocusLabels.entries
+                  .where((e) =>
+                      e.value == _stvTopLabel('search') &&
+                      e.key.canRequestFocus &&
+                      e.key.context != null)
+                  .map((e) => e.key)
+                  .firstOrNull;
+              if (searchNode != null) {
+                _homeFocusNavAt = DateTime.now();
+                searchNode.requestFocus();
+                return KeyEventResult.handled;
+              }
+            }
+            if (key == LogicalKeyboardKey.arrowRight) {
+              _homeFocusNavAt = DateTime.now();
+              widget.onArrowRight?.call();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              canRequestFocus: false,
+              onTap: widget.onTap,
+              borderRadius: BorderRadius.circular(14),
+              child: AnimatedContainer(
+                duration: kFocusAnimDuration,
+                width: double.infinity,
+                height: 66,
+                decoration: BoxDecoration(
+                  color: widget.selected
+                      ? kSkyProBlue.withValues(alpha: 0.2)
                       : Colors.transparent,
-                  width: _focused ? 2 : 1,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: _focused
+                        ? kSkyProSilver
+                        : widget.selected
+                        ? kSkyProBlue
+                        : Colors.transparent,
+                    width: 2,
+                  ),
                 ),
-              ),
-              child: Semantics(
-                button: true,
-                selected: widget.selected,
-                label: widget.label,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      widget.iconAsset,
-                      width: 22,
-                      height: 22,
-                      color: kSkyProSilver,
-                      colorBlendMode: BlendMode.srcIn,
-                      errorBuilder: (_, _, _) => const Icon(
-                        Icons.live_tv,
-                        size: 22,
+                child: Semantics(
+                  button: true,
+                  selected: widget.selected,
+                  label: widget.label,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        widget.iconAsset,
+                        width: 22,
+                        height: 22,
                         color: kSkyProSilver,
+                        colorBlendMode: BlendMode.srcIn,
+                        errorBuilder: (_, _, _) => const Icon(
+                          Icons.live_tv,
+                          size: 22,
+                          color: kSkyProSilver,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      widget.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: kSkyProSilver,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 5),
+                      Text(
+                        widget.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: kSkyProSilver,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -741,21 +803,42 @@ KeyEventResult _smartTvTopBarKey(
     return KeyEventResult.ignored;
   }
   final key = event.logicalKey;
+  final isArrow =
+      key == LogicalKeyboardKey.arrowRight ||
+      key == LogicalKeyboardKey.arrowLeft ||
+      key == LogicalKeyboardKey.arrowDown ||
+      key == LogicalKeyboardKey.arrowUp;
+
+  if (isArrow && event is KeyRepeatEvent) {
+    final last = _homeFocusNavAt;
+    if (last != null &&
+        DateTime.now().difference(last) < _kHomeFocusNavMinInterval) {
+      return KeyEventResult.handled;
+    }
+  }
+
   if (key == LogicalKeyboardKey.arrowRight) {
     if (isLastInRow) return KeyEventResult.handled;
     final next = _homePickHorizontalNeighbor(node, toRight: true);
-    if (next != null) next.requestFocus();
+    if (next != null) {
+      _homeFocusNavAt = DateTime.now();
+      next.requestFocus();
+    }
     return KeyEventResult.handled;
   }
   if (key == LogicalKeyboardKey.arrowLeft) {
     if (isFirstInRow) return KeyEventResult.handled;
     final next = _homePickHorizontalNeighbor(node, toRight: false);
-    if (next != null) next.requestFocus();
+    if (next != null) {
+      _homeFocusNavAt = DateTime.now();
+      next.requestFocus();
+    }
     return KeyEventResult.handled;
   }
   if (key == LogicalKeyboardKey.arrowDown) {
     final next = _homePickVerticalNeighbor(node, down: true);
     if (next != null) {
+      _homeFocusNavAt = DateTime.now();
       next.requestFocus();
       return KeyEventResult.handled;
     }
@@ -764,7 +847,10 @@ KeyEventResult _smartTvTopBarKey(
   }
   if (key == LogicalKeyboardKey.arrowUp) {
     final next = _homePickVerticalNeighbor(node, down: false);
-    if (next != null) next.requestFocus();
+    if (next != null) {
+      _homeFocusNavAt = DateTime.now();
+      next.requestFocus();
+    }
     return KeyEventResult.handled;
   }
   return settingsTvActivateOnSelect(event, onActivate);
@@ -830,64 +916,66 @@ class _SmartTvHomeTabState extends State<_SmartTvHomeTab> {
     final fontSize = mobile ? 12.0 : 13.0;
     final gap = mobile ? 5.0 : 6.0;
 
-    return Focus(
-      focusNode: _focusNode,
-      onFocusChange: (v) {
-        if (_focused == v) return;
-        setState(() => _focused = v);
-      },
-      onKeyEvent: (node, event) => _smartTvTopBarKey(
-        node,
-        event,
-        isFirstInRow: widget.isFirstInRow,
-        isLastInRow: false,
-        onActivate: widget.onTap,
-        onArrowDownToContent: widget.onArrowDownToContent,
-      ),
-      child: InkWell(
-        onTap: widget.onTap,
-        canRequestFocus: false,
-        borderRadius: BorderRadius.circular(999),
-        child: AnimatedContainer(
-          duration: kFocusAnimDuration,
-          height: mobile ? 32 : null,
-          padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: borderColor, width: focused ? 2 : 0),
-            boxShadow: focused
-                ? [
-                    BoxShadow(
-                      color: kColorFocus.withValues(alpha: 0.35),
-                      blurRadius: 10,
-                      spreadRadius: 0.5,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                widget.iconAsset,
-                width: iconSize,
-                height: iconSize,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (_, _, _) =>
-                    Icon(Icons.circle, size: iconSize * 0.8, color: fg),
-              ),
-              SizedBox(width: gap),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: selected ? const Color(0xFF111827) : Colors.white,
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w700,
-                  height: 1,
+    return RepaintBoundary(
+      child: Focus(
+        focusNode: _focusNode,
+        onFocusChange: (v) {
+          if (_focused == v) return;
+          setState(() => _focused = v);
+        },
+        onKeyEvent: (node, event) => _smartTvTopBarKey(
+          node,
+          event,
+          isFirstInRow: widget.isFirstInRow,
+          isLastInRow: false,
+          onActivate: widget.onTap,
+          onArrowDownToContent: widget.onArrowDownToContent,
+        ),
+        child: InkWell(
+          onTap: widget.onTap,
+          canRequestFocus: false,
+          borderRadius: BorderRadius.circular(999),
+          child: AnimatedContainer(
+            duration: kFocusAnimDuration,
+            height: mobile ? 32 : null,
+            padding: EdgeInsets.symmetric(horizontal: padH, vertical: padV),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: borderColor, width: 2),
+              boxShadow: focused
+                  ? [
+                      BoxShadow(
+                        color: kColorFocus.withValues(alpha: 0.35),
+                        blurRadius: 10,
+                        spreadRadius: 0.5,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  widget.iconAsset,
+                  width: iconSize,
+                  height: iconSize,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, _, _) =>
+                      Icon(Icons.circle, size: iconSize * 0.8, color: fg),
                 ),
-              ),
-            ],
+                SizedBox(width: gap),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: selected ? const Color(0xFF111827) : Colors.white,
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -936,8 +1024,9 @@ class _SmartTvSearchPillState extends State<_SmartTvSearchPill> {
   void didUpdateWidget(covariant _SmartTvSearchPill oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selected != widget.selected) {
-      // مثل Smart TV: تفريغ البحث عند تبديل التبويب.
-      _applyQuery('', immediate: true);
+      if (kSmartTvTopSearchQuery.value.isNotEmpty || _controller.text.isNotEmpty) {
+        _applyQuery('', immediate: true);
+      }
     }
   }
 
@@ -988,8 +1077,7 @@ class _SmartTvSearchPillState extends State<_SmartTvSearchPill> {
       commit();
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 200), commit);
-    if (mounted) setState(() {});
+    _debounce = Timer(const Duration(milliseconds: 300), commit);
   }
 
   void _insertChar(String ch) {
@@ -1115,96 +1203,98 @@ class _SmartTvSearchPillState extends State<_SmartTvSearchPill> {
     final fontSz = compact ? 11.5 : 12.0;
     final padH = compact ? 8.0 : 10.0;
 
-    return Focus(
-      focusNode: _focusNode,
-      onFocusChange: (v) {
-        if (_focused == v) return;
-        setState(() => _focused = v);
-      },
-      onKeyEvent: _onKey,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _openKeyboard,
-        child: AnimatedContainer(
-          duration: kFocusAnimDuration,
-          width: pillW,
-          height: pillH,
-          padding: EdgeInsets.symmetric(horizontal: padH),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2A2D34),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: focused ? kColorFocus : Colors.white24,
-              width: focused ? 2 : 1,
-            ),
-            boxShadow: focused
-                ? [
-                    BoxShadow(
-                      color: kColorFocus.withValues(alpha: 0.35),
-                      blurRadius: 10,
-                      spreadRadius: 0.5,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.search_rounded,
-                size: iconSz,
-                color: focused ? kColorFocus : Colors.white70,
+    return RepaintBoundary(
+      child: Focus(
+        focusNode: _focusNode,
+        onFocusChange: (v) {
+          if (_focused == v) return;
+          setState(() => _focused = v);
+        },
+        onKeyEvent: _onKey,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _openKeyboard,
+          child: AnimatedContainer(
+            duration: kFocusAnimDuration,
+            width: pillW,
+            height: pillH,
+            padding: EdgeInsets.symmetric(horizontal: padH),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A2D34),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: focused ? kColorFocus : Colors.white24,
+                width: 2,
               ),
-              SizedBox(width: compact ? 5 : 6),
-              Expanded(
-                child: phone
-                    ? TextField(
-                        focusNode: _textFocus,
-                        controller: _controller,
-                        onChanged: (v) => _applyQuery(v),
-                        onTap: () => setState(() {}),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: fontSz,
-                          fontWeight: FontWeight.w600,
-                          height: 1.1,
-                        ),
-                        cursorColor: kColorFocus,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          border: InputBorder.none,
-                          hintText: hint,
-                          hintStyle: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
+              boxShadow: focused
+                  ? [
+                      BoxShadow(
+                        color: kColorFocus.withValues(alpha: 0.35),
+                        blurRadius: 10,
+                        spreadRadius: 0.5,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.search_rounded,
+                  size: iconSz,
+                  color: focused ? kColorFocus : Colors.white70,
+                ),
+                SizedBox(width: compact ? 5 : 6),
+                Expanded(
+                  child: phone
+                      ? TextField(
+                          focusNode: _textFocus,
+                          controller: _controller,
+                          onChanged: (v) => _applyQuery(v),
+                          onTap: () => setState(() {}),
+                          style: TextStyle(
+                            color: Colors.white,
                             fontSize: fontSz,
                             fontWeight: FontWeight.w600,
                             height: 1.1,
                           ),
-                          contentPadding: EdgeInsets.zero,
+                          cursorColor: kColorFocus,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            border: InputBorder.none,
+                            hintText: hint,
+                            hintStyle: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.55),
+                              fontSize: fontSz,
+                              fontWeight: FontWeight.w600,
+                              height: 1.1,
+                            ),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        )
+                      : Text(
+                          query.isEmpty ? hint : query,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: query.isEmpty
+                                ? Colors.white.withValues(alpha: 0.55)
+                                : Colors.white,
+                            fontSize: fontSz,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      )
-                    : Text(
-                        query.isEmpty ? hint : query,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: query.isEmpty
-                              ? Colors.white.withValues(alpha: 0.55)
-                              : Colors.white,
-                          fontSize: fontSz,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              ),
-              if (query.isNotEmpty)
-                GestureDetector(
-                  onTap: () => _applyQuery('', immediate: true),
-                  child: Icon(
-                    Icons.close_rounded,
-                    size: compact ? 13 : 14,
-                    color: Colors.white.withValues(alpha: 0.65),
-                  ),
                 ),
-            ],
+                if (query.isNotEmpty)
+                  GestureDetector(
+                    onTap: () => _applyQuery('', immediate: true),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: compact ? 13 : 14,
+                      color: Colors.white.withValues(alpha: 0.65),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

@@ -226,8 +226,6 @@ FocusNode? _homePickHorizontalNeighborSmartTv(
   FocusNode from, {
   required bool toRight,
 }) {
-  final scope = from.nearestScope;
-  if (scope == null) return null;
   final label = _stvLabelOf(from);
 
   final fromPoster = _stvParsePosterLabel(label);
@@ -236,31 +234,94 @@ FocusNode? _homePickHorizontalNeighborSmartTv(
     final col = fromPoster.$2;
     final targetCol = toRight ? col + 1 : col - 1;
     if (targetCol < 0) return null;
-    for (final n in scope.traversalDescendants) {
-      if (!n.canRequestFocus || n.skipTraversal) continue;
-      final p = _stvParsePosterLabel(_stvLabelOf(n));
+    // البحث أولاً في الملصقات المسجلة مباشرة لتجنب مسح شجرة FocusNode كاملة
+    for (final entry in _stvFocusLabels.entries) {
+      final n = entry.key;
+      if (!n.canRequestFocus || n.skipTraversal || n.context == null) continue;
+      final p = _stvParsePosterLabel(entry.value);
       if (p != null && p.$1 == row && p.$2 == targetCol) return n;
+    }
+    final scope = from.nearestScope;
+    if (scope != null) {
+      for (final n in scope.traversalDescendants) {
+        if (!n.canRequestFocus || n.skipTraversal) continue;
+        final p = _stvParsePosterLabel(_stvLabelOf(n));
+        if (p != null && p.$1 == row && p.$2 == targetCol) return n;
+      }
     }
     return null; // حافة الصف — نبقى هنا مثل Smart TV
   }
 
   if (_stvIsTopBarLabel(label)) {
-    final tops = <({FocusNode node, double dx})>[];
+    // تنقل فوري داخل شريط التلفاز والأدوات بدون مسح مئات العناصر أو حساب Rects ثقيلة
+    const topBarOrder = <String>[
+      'home',
+      'live',
+      'movies',
+      'series',
+      'fav',
+      'search',
+      'profile',
+      'notifications',
+      'settings',
+    ];
+
+    String? currentId;
+    for (final id in topBarOrder) {
+      if (label == _stvTopLabel(id)) {
+        currentId = id;
+        break;
+      }
+    }
+
+    final activeTopNodes = <String, FocusNode>{};
+    for (final entry in _stvFocusLabels.entries) {
+      final n = entry.key;
+      if (!n.canRequestFocus || n.skipTraversal || n.context == null) continue;
+      final l = entry.value;
+      if (_stvIsTopBarLabel(l)) {
+        activeTopNodes[l] = n;
+      }
+    }
+
+    if (currentId != null) {
+      final curIdx = topBarOrder.indexOf(currentId);
+      if (toRight) {
+        for (int i = curIdx + 1; i < topBarOrder.length; i++) {
+          final targetNode = activeTopNodes[_stvTopLabel(topBarOrder[i])];
+          if (targetNode != null && !identical(targetNode, from)) {
+            return targetNode;
+          }
+        }
+      } else {
+        for (int i = curIdx - 1; i >= 0; i--) {
+          final targetNode = activeTopNodes[_stvTopLabel(topBarOrder[i])];
+          if (targetNode != null && !identical(targetNode, from)) {
+            return targetNode;
+          }
+        }
+      }
+    }
+
+    // احتياطي هندسي بين عناصر الشريط العلوي النشطة فقط (بدون أي مسح لبقية الشاشة)
     Rect? fromRect;
     try {
       fromRect = from.rect;
     } catch (_) {
       return null;
     }
-    for (final n in scope.traversalDescendants) {
-      if (identical(n, from) || !n.canRequestFocus || n.skipTraversal) continue;
-      if (!_stvIsTopBarLabel(_stvLabelOf(n))) continue;
+    if (fromRect.isEmpty) return null;
+
+    final tops = <({FocusNode node, double dx})>[];
+    for (final n in activeTopNodes.values) {
+      if (identical(n, from)) continue;
       Rect r;
       try {
         r = n.rect;
       } catch (_) {
         continue;
       }
+      if (r.isEmpty) continue;
       tops.add((node: n, dx: r.center.dx - fromRect.center.dx));
     }
     final candidates = tops.where((e) {
@@ -298,9 +359,11 @@ FocusNode? _homePickVerticalNeighborSmartTv(
   FocusNode? homeTab;
   final topBar = <FocusNode>[];
 
-  for (final n in scope.traversalDescendants) {
-    if (!n.canRequestFocus || n.skipTraversal) continue;
-    final l = _stvLabelOf(n);
+  // استخدام الكاش المسجل في _stvFocusLabels أولاً
+  for (final entry in _stvFocusLabels.entries) {
+    final n = entry.key;
+    if (!n.canRequestFocus || n.skipTraversal || n.context == null) continue;
+    final l = entry.value;
     final p = _stvParsePosterLabel(l);
     if (p != null) {
       posters.add((node: n, row: p.$1, col: p.$2));
@@ -309,6 +372,22 @@ FocusNode? _homePickVerticalNeighborSmartTv(
     if (_stvIsTopBarLabel(l)) {
       topBar.add(n);
       if (l == _stvTopLabel('home')) homeTab = n;
+    }
+  }
+
+  if (posters.isEmpty && topBar.isEmpty) {
+    for (final n in scope.traversalDescendants) {
+      if (!n.canRequestFocus || n.skipTraversal) continue;
+      final l = _stvLabelOf(n);
+      final p = _stvParsePosterLabel(l);
+      if (p != null) {
+        posters.add((node: n, row: p.$1, col: p.$2));
+        continue;
+      }
+      if (_stvIsTopBarLabel(l)) {
+        topBar.add(n);
+        if (l == _stvTopLabel('home')) homeTab = n;
+      }
     }
   }
 

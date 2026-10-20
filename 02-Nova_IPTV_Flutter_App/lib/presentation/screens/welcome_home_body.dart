@@ -352,15 +352,17 @@ Widget _welcomeBuildHomeContent(
                                                       const EdgeInsets.symmetric(
                                                     horizontal: 6,
                                                   ),
-                                                  child: _HomeHeroCarousel(
-                                                    movies: movies,
-                                                    series: series,
-                                                    serverUrl: serverUrl,
-                                                    tvFocusRow: heroRow,
-                                                    height: heroHeight,
-                                                    isDemo: isDemo,
-                                                    onDemoTap: onDemoTap,
-                                                    autofocusWatch: tv,
+                                                  child: RepaintBoundary(
+                                                    child: _HomeHeroCarousel(
+                                                      movies: movies,
+                                                      series: series,
+                                                      serverUrl: serverUrl,
+                                                      tvFocusRow: heroRow,
+                                                      height: heroHeight,
+                                                      isDemo: isDemo,
+                                                      onDemoTap: onDemoTap,
+                                                      autofocusWatch: tv,
+                                                    ),
                                                   ),
                                                 ),
                                                 SizedBox(height: gap),
