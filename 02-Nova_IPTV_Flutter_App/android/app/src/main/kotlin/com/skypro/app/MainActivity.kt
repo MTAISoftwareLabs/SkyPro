@@ -83,12 +83,11 @@ class MainActivity : FlutterActivity() {
         if (isTelevision()) return
 
         try {
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        } catch (_: Exception) {
-            try {
+            // Only set if not already landscape to prevent unnecessary layout destruction
+            if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) {
                 requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            } catch (_: Exception) {
             }
+        } catch (_: Throwable) {
         }
     }
 
